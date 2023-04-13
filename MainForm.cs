@@ -44,7 +44,7 @@ namespace Pacman
             for (int x = 0; x < intLevel.GetLength(0); x++)
                 for (int y = 0; y < intLevel.GetLength(1); y++)
                     boolLevel[x, y] = intLevel[x, y].ToBool();
-            Levels.Add(new Level(boolLevel, new Point(13, 8), (8, Direction.Right)));
+            Levels.Add(new Level(boolLevel, new Point(13, 8), (8, Direction.Right), (new Point(8, 8), Direction.Up)));
             intLevel = new (int RightWall, int DownWall, int NoCoin)[11, 12]
             {
                 { (0,0, 0), (0,1, 0), (0,0, 0), (0,1, 0), (0,1, 0), (1,0, 0), (0,0, 0), (0,1, 0), (0,1, 0), (0,0, 0), (0,1, 0), (1,0, 0) },
@@ -63,7 +63,7 @@ namespace Pacman
             for (int x = 0; x < intLevel.GetLength(0); x++)
                 for (int y = 0; y < intLevel.GetLength(1); y++)
                     boolLevel[x, y] = intLevel[x, y].ToBool();
-            Levels.Add(new Level(boolLevel, new Point(8, 5), (5, Direction.Right)));
+            Levels.Add(new Level(boolLevel, new Point(8, 5), (5, Direction.Right), (new Point(5, 5), Direction.Up)));
         }
 
         private void NewGameTool_Click(object sender, EventArgs e)
@@ -82,7 +82,12 @@ namespace Pacman
 
         private void DebugTimer_Tick(object sender, EventArgs e)
         {
-            DebugBox.Text = $"Game\n{Game?.Debug() ?? ""}\nPlayer\n{Game?.Player.Debug(Game) ?? ""}";
+            DebugBox.Text = $"Game\n{Game?.Debug() ?? ""}\n" +
+                $"\nPlayer\n{Game?.Player.Debug(Game) ?? ""}\n" +
+                $"\nBlinky\n{Game?.Ghosts[0].Debug(Game)}\n" +
+                $"\nPinky\n{Game?.Ghosts[1].Debug(Game)}\n" +
+                $"\nInky\n{Game?.Ghosts[2].Debug(Game)}\n" +
+                $"\nClyde\n{Game?.Ghosts[3].Debug(Game)}";
         }
 
         private void MainForm_KeyDown(object sender, KeyEventArgs e)

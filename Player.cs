@@ -49,16 +49,17 @@ namespace Pacman
         public void ApllyDamage(int damage)
         {
             Health--;
+            Owner.PlayerToStart();
             if (Health <= 0)
                 Dead();
         }
 
         public void Dead()
         {
-            throw new NotImplementedException();
+            Owner.GameEnd();
         }
 
-        public override string Debug(GameTable game) => $"Score {Score}\n{base.Debug(game)}";
+        public override string Debug(GameTable game) => $"Score {Score}\n{base.Debug(game)}\nLive {Health}";
 
         public struct PlayerArgs
         {

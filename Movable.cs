@@ -53,7 +53,7 @@ namespace Pacman
             if (direction == Direction.None || direction == Speed.Direction)
                 return;
             var sector = Owner.GetPositionSector(Center).sector;
-            if (sector.CanGo[direction] &&
+            if ((sector.CanGo[direction] || (this is Ghost ghost && ghost.GoHome(direction))) &&
                 PointF.Subtract(sector.Bounds.Center(), (Size)Center).ToSize().Length() < Owner.SectorScaleValue / 8)
             {
                 Speed.Direction = direction;
@@ -63,8 +63,7 @@ namespace Pacman
             else
                 SavedDirection = direction;
         }
-
-        public void Update(object sender, EventArgs e)
+        private void ChangeSpeed()
         {
             switch (Speed.Direction)
             {
@@ -84,14 +83,18 @@ namespace Pacman
                     Speed.Value = new(-Speed.MaxValue, 0);
                     break;
             }
-            var (sector, _) = Owner.GetPositionSector(Center);
-            UpdateDistanceToWalls(sector);
-            float wallBound = Owner.BParametrs.WallBound;
+        }
+        protected virtual void BlockSpeed(float wallBound)
+        {
             if (Distance.right < 1 - wallBound && Speed.Direction == Direction.Right || Distance.left < 1 - wallBound && Speed.Direction == Direction.Left)
                 Speed.Value.X = 0;
             if (Distance.up < 1 - wallBound && Speed.Direction == Direction.Up || Distance.down < 1 - wallBound && Speed.Direction == Direction.Down)
                 Speed.Value.Y = 0;
-            Bounds.Location += Speed.Value;
+        }
+        private void Ejection(Sector sector, float wallBound)
+        {
+            if (this is Ghost ghost && ghost.GoHome(Speed.Direction))
+                return;
             InvertVectorF ejection = new();
             if (Distance.up < -wallBound)
                 ejection.Y = Distance.up + wallBound;
@@ -104,40 +107,58 @@ namespace Pacman
             Bounds.Location += ejection;
             if (sector != null)
                 if (sector.CornerBounds[Direction.Up].right.Contains(Center))
-                    Bounds.Location += new SizeF(-Bounds.Width / 2, -Bounds.Height / 2);
+                    Bounds.Location += new SizeF() { Width = -Bounds.Width / 2, Height = -Bounds.Height / 2 };
                 else if (sector.CornerBounds[Direction.Up].left.Contains(Center))
-                    Bounds.Location += new SizeF(Bounds.Width / 2, -Bounds.Height / 2);
+                    Bounds.Location += new SizeF() { Width = Bounds.Width / 2, Height = -Bounds.Height / 2 };
                 else if (sector.CornerBounds[Direction.Down].right.Contains(Center))
-                    Bounds.Location += new SizeF(-Bounds.Width / 2, Bounds.Height / 2);
+                    Bounds.Location += new SizeF() { Width = -Bounds.Width / 2, Height = Bounds.Height / 2 };
                 else if (sector.CornerBounds[Direction.Down].left.Contains(Center))
-                    Bounds.Location += new SizeF(Bounds.Width / 2, Bounds.Height / 2);
-            if (sector == null)
+                    Bounds.Location += new SizeF() { Width = Bounds.Width / 2, Height = Bounds.Height / 2 };
+        }
+        private void CheckTeleport(Sector sector)
+        {
+            if (sector != null)
+                return;
+            switch (LastSector.VoidPassage)
             {
-                switch (LastSector.VoidPassage)
-                {
-                    case Direction.Up:
-                        Bounds.Location += new SizeF(0, Owner.ImgSize.Height);
-                        break;
-                    case Direction.Right:
-                        Bounds.Location -= new SizeF(Owner.ImgSize.Width, 0);
-                        break;
-                    case Direction.Down:
-                        Bounds.Location -= new SizeF(0, Owner.ImgSize.Height);
-                        break;
-                    case Direction.Left:
-                        Bounds.Location += new SizeF(Owner.ImgSize.Width, 0);
-                        break;
-                }
-                sector = Owner.GetPositionSector(Center).sector;
-                UpdateDistanceToWalls(sector);
+                case Direction.Up:
+                    Bounds.Location += new SizeF(0, Owner.ImgSize.Height);
+                    break;
+                case Direction.Right:
+                    Bounds.Location -= new SizeF(Owner.ImgSize.Width, 0);
+                    break;
+                case Direction.Down:
+                    Bounds.Location -= new SizeF(0, Owner.ImgSize.Height);
+                    break;
+                case Direction.Left:
+                    Bounds.Location += new SizeF(Owner.ImgSize.Width, 0);
+                    break;
             }
-            if (LastSector != sector)
-                LastSector = sector;
-            ChangeDirection(SavedDirection);
+            sector = Owner.GetPositionSector(Center).sector;
+            UpdateDistanceToWalls(sector);
         }
 
+        public void Update(object sender, EventArgs e)
+        {
+            var sector = Owner.GetPositionSector(Center).sector;
+            UpdateDistanceToWalls(sector);
+            float wallBound = Owner.BParametrs.WallBound;
+            ChangeSpeed();
+            BlockSpeed(wallBound);
+            Bounds.Location += Speed.Value;
+            Ejection(sector, wallBound);
+            CheckTeleport(sector);
+            if (LastSector != sector)
+            {
+                SectorChanged?.Invoke(this, EventArgs.Empty);
+                LastSector = sector;
+            }
+            ChangeDirection(SavedDirection);
+        }
+        public event EventHandler SectorChanged;
+
         public abstract void Render();
-        public void Draw(Graphics g)
+        public virtual void Draw(Graphics g)
         {
             g.DrawImage(Texture, ImgLocation);
             //g.DrawLine(Pens.Red, new PointF(Center.X, Bounds.Top), new PointF(Center.X, Bounds.Top - Distance.up));
@@ -150,7 +171,7 @@ namespace Pacman
         {
             Point position = game.GetPositionSector(Center).position;
             var (up, right, down, left) = Distance;
-            return $"Sector {position}\nSpeed V={Speed.Value}\nUp {up}\nDown {down}\nLeft {left}\nRight {right}";
+            return $"Sector {position}\nSpeed {Speed.Value}\nDirection {Speed.Direction}\nUp {up}\nDown {down}\nLeft {left}\nRight {right}";
         }
     }
 

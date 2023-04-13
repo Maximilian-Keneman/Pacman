@@ -8,6 +8,8 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using static System.Windows.Forms.LinkLabel;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
 
 namespace Pacman
 {
@@ -22,7 +24,7 @@ namespace Pacman
     public class Sector
     {
         private GameTable Owner;
-        private Point TblPosition;
+        public Point TblPosition { get; }
         public Dictionary<Direction, Sector> NeighborSector => new()
         {
             { Direction.Up, TblPosition.X > 0 ? Owner[TblPosition + new Size(-1, 0)] : null },
@@ -160,8 +162,10 @@ namespace Pacman
         public Guid Level { get; }
 
         public Player Player;
+        public Ghost[] Ghosts;
 
         protected Point? StartSector;
+        public (Point Location, Direction Exit) GhostHome { get; }
 
         protected GameTable() { }
         public GameTable(Level level, Player.PlayerArgs player, Size formSize, IScreen box)
@@ -174,6 +178,7 @@ namespace Pacman
             ImgSize = Size.Truncate(new(TblSize.Height * SectorScaleValue, TblSize.Width * SectorScaleValue));
             box.UpdateImage(new Bitmap(ImgSize.Width, ImgSize.Height));
             StartSector = level.Start;
+            GhostHome = level.GhostHome;
             for (int x = 0; x < TblSize.Width; x++)
                 for (int y = 0; y < TblSize.Height; y++)
                 {
@@ -202,6 +207,16 @@ namespace Pacman
             Player = new(this, player);
             Player.Render();
             UpdateEvent += Player.Update;
+            Ghosts = new Ghost[4];
+            Ghosts[0] = new Blinky(this, new(-1, TblSize.Height));
+            Ghosts[1] = new Pinky(this, new(-1, -1));
+            Ghosts[2] = new Inky(this, new(TblSize.Width, TblSize.Height), (Blinky)Ghosts[0]);
+            Ghosts[3] = new Clyde(this, new(TblSize.Width, -1));
+            for (int i = 0; i < Ghosts.Length; i++)
+            {
+                Ghosts[i].Render();
+                UpdateEvent += Ghosts[i].Update;
+            }
             OnPaint(box);
             PaintUpdate = new(OnPaint, box, -1, 100);
             PhisicUpdate = new(Update, null, -1, 100);
@@ -234,6 +249,8 @@ namespace Pacman
                     for (int y = 0; y < TblSize.Height; y++)
                         Sectors[x, y].Draw(g);
                 Player?.Draw(g);
+                for (int i = 0; i < Ghosts.Length; i++)
+                    Ghosts[i].Draw(g);
             }
             return img;
         }
@@ -254,11 +271,18 @@ namespace Pacman
             }
         }
 
-        protected void PlayerToStart()
+        public void PlayerToStart()
         {
             RectangleF startWall = this[StartSector.Value].Bounds;
             Player.TpTo(new(startWall.Left + startWall.Width / 2, startWall.Top + startWall.Height / 2));
             Player.ChangeDirection(Direction.Left);
+            startWall = this[GhostHome.Location].Bounds;
+            for (int i = 0; i < Ghosts.Length; i++)
+            {
+                Ghosts[i].TpTo(new(startWall.Left + startWall.Width / 2, startWall.Top + startWall.Height / 2));
+                Ghosts[i].ChangeDirection(Direction.Left);
+                Ghosts[i].Restart();
+            }
         }
         public void GameStart()
         {
@@ -354,14 +378,16 @@ namespace Pacman
         public Size Size => new(Structure.GetLength(0), Structure.GetLength(1));
         public Point Start { get; }
         public (int Index, Direction Direction) Portal { get; }
+        public (Point Location, Direction Exit) GhostHome { get; }
 
         public Level((bool RightWall, bool DownWall, bool NoCoin)[,] structure, Point StartSector,
-                     (int Index, Direction Direction) portal)
+                     (int Index, Direction Direction) portal, (Point Location, Direction Exit) ghostHome)
         {
             GUID = Guid.NewGuid();
             Structure = structure;
             Start = StartSector;
             Portal = portal;
+            GhostHome = ghostHome;
         }
 
         public void Save(string path)
@@ -387,6 +413,7 @@ namespace Pacman
                     info.AddValue($"{x},{y}", (Structure[x, y].RightWall ? 100 : 0) + (Structure[x, y].DownWall ? 10 : 0) + (Structure[x, y].NoCoin ? 1 : 0));
             info.AddValue("Start", $"{Start.X},{Start.Y}");
             info.AddValue("Portal", Portal.Index * 10 + (int)Portal.Direction);
+            info.AddValue("GhostHome", $"{GhostHome.Location.X},{GhostHome.Location.Y},{(int)GhostHome.Exit}");
         }
         private Level(SerializationInfo info, StreamingContext context)
         {
@@ -405,6 +432,8 @@ namespace Pacman
             Start = new Point(start[0], start[1]);
             int portal = info.GetInt32("Portal");
             Portal = (portal / 10, (Direction)(portal % 10));
+            int[] ghostHome = info.GetString("GhostHome").Split(',').Select(int.Parse).ToArray();
+            GhostHome = (new(ghostHome[0], ghostHome[1]), (Direction)ghostHome[2]);
         }
     }
 

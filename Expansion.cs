@@ -156,6 +156,7 @@ namespace Pacman
         public static PointF Center(this RectangleF rect) => new(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
         public static double Length(this Size vector) => Math.Sqrt(Math.Pow(vector.Width, 2) + Math.Pow(vector.Height, 2));
         public static double Length(this SizeF vector) => Math.Sqrt(Math.Pow(vector.Width, 2) + Math.Pow(vector.Height, 2));
+        public static Size Multiple(this Size size, int multiple) => new(size.Width * multiple, size.Height * multiple);
         public static SizeF ToSize(this PointF point) => new(point.X, point.Y);
 
         public static T[] ToArray<T>(this (T V1, T V2) tuple) => new T[] { tuple.V1, tuple.V2 };
@@ -191,50 +192,50 @@ namespace Pacman
             => throw new InvalidEnumArgumentException(nameof(direction), (int)direction, typeof(Direction));
         public static Size ToSize(this Direction direction) => direction switch
         {
-            Direction.Up => new Size(1, 0),
-            Direction.Right => new Size(0, -1),
-            Direction.Down => new Size(-1, 0),
-            Direction.Left => new Size(0, 1),
+            Direction.Up => new(-1, 0),
+            Direction.Right => new(0, -1),
+            Direction.Down => new(1, 0),
+            Direction.Left => new(0, 1),
             _ => throw direction.ThrowInvalidDirectionException()
         };
         public static Point ToPoint(this Direction direction) => direction switch
         {
-            Direction.Up => new Point(1, 0),
-            Direction.Right => new Point(0, -1),
-            Direction.Down => new Point(-1, 0),
-            Direction.Left => new Point(0, 1),
+            Direction.Up => new(-1, 0),
+            Direction.Right => new(0, -1),
+            Direction.Down => new(1, 0),
+            Direction.Left => new(0, 1),
             _ => throw direction.ThrowInvalidDirectionException()
         };
         public static Size ToSizeOrEmpty(this Direction direction) => direction switch
         {
-            Direction.Up => new Size(1, 0),
-            Direction.Right => new Size(0, -1),
-            Direction.Down => new Size(-1, 0),
-            Direction.Left => new Size(0, 1),
+            Direction.Up => new(-1, 0),
+            Direction.Right => new(0, -1),
+            Direction.Down => new(1, 0),
+            Direction.Left => new(0, 1),
             _ => Size.Empty
         };
         public static Point ToPointOrEmpty(this Direction direction) => direction switch
         {
-            Direction.Up => new Point(1, 0),
-            Direction.Right => new Point(0, -1),
-            Direction.Down => new Point(-1, 0),
-            Direction.Left => new Point(0, 1),
+            Direction.Up => new(-1, 0),
+            Direction.Right => new(0, -1),
+            Direction.Down => new(1, 0),
+            Direction.Left => new(0, 1),
             _ => Point.Empty
         };
         public static Size ToSizeOrEmpty(this Direction direction, Size empty) => direction switch
         {
-            Direction.Up => new Size(1, 0),
+            Direction.Up => new Size(-1, 0),
             Direction.Right => new Size(0, -1),
-            Direction.Down => new Size(-1, 0),
+            Direction.Down => new Size(1, 0),
             Direction.Left => new Size(0, 1),
             _ => empty
         };
         public static Point ToPointOrEmpty(this Direction direction, Point empty) => direction switch
         {
-            Direction.Up => new Point(1, 0),
-            Direction.Right => new Point(0, -1),
-            Direction.Down => new Point(-1, 0),
-            Direction.Left => new Point(0, 1),
+            Direction.Up => new(-1, 0),
+            Direction.Right => new(0, -1),
+            Direction.Down => new(1, 0),
+            Direction.Left => new(0, 1),
             _ => empty
         };
         public static Direction Inverse(this Direction direction) => direction switch
