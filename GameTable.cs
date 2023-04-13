@@ -56,6 +56,8 @@ namespace Pacman
                                new RectangleF(ImgLocation.X + Scale * 9 / 10, ImgLocation.Y + Scale * 9 / 10, Scale / 10, Scale / 10)) }
         };
 
+        public (RectangleF bounds, bool geted)[] Coins;
+
         private PointF ImgLocation => new(TblPosition.Y * Scale, TblPosition.X * Scale);
         private SizeF Size => Owner.SectorScale;
         public float Scale => Owner.SectorScaleValue;
@@ -69,14 +71,39 @@ namespace Pacman
             Size ImgSize = new(ImgSectorSize, ImgSectorSize);
             Background = Images.GetFragment(Properties.Resources.StandartWalls, ImgSize, new RectangleF(new PointF(D * ImgSectorSize, (4 - W) * ImgSectorSize), ImgSize), System.Drawing.Size.Truncate(Size));
         }
+        public void Draw(Graphics g)
+        {
+            g.DrawImage(Background, Bounds);
+            foreach (var (coinBounds, coinGeted) in Coins)
+                if (!coinGeted)
+                    g.FillRectangle(new SolidBrush(Color.Black), coinBounds);
+        }
 
-        public Sector(GameTable table, Point tblPosition, bool RW, bool DW, Direction voidPassage = Direction.None)
+        public Sector(GameTable table, Point tblPosition, bool rightWall, bool downWall, bool noCoins, Direction voidPassage = Direction.None)
         {
             Owner = table;
             TblPosition = tblPosition;
-            RightWall = RW;
-            DownWall = DW;
+            RightWall = rightWall;
+            DownWall = downWall;
             VoidPassage = voidPassage;
+            if (noCoins)
+                Coins = new (RectangleF bounds, bool geted)[0];
+            else
+            {
+                var coinBounds = new RectangleF(9 * Scale / 20, 9 * Scale / 20, Scale / 10, Scale / 10);
+                var coins = new List<RectangleF> { coinBounds };
+                if (CanGo[Direction.Up] && NeighborSector[Direction.Up]?.Coins.Length != 0)
+                {
+                    coinBounds.Location = new(9 * Scale / 20, -Scale / 20);
+                    coins.Add(coinBounds);
+                }
+                if (CanGo[Direction.Left] && NeighborSector[Direction.Left]?.Coins.Length != 0)
+                {
+                    coinBounds.Location = new(-Scale / 20, 9 * Scale / 20);
+                    coins.Add(coinBounds);
+                }
+                Coins = coins.Select(C => { C.Offset(ImgLocation); return (bounds: C, geted: false); }).ToArray();
+            }
             PaintBackground();
         }
         private (int W, int D) GetWallDir()
@@ -170,7 +197,7 @@ namespace Pacman
                                     voidPassage = Direction.Right;
                             break;
                     }
-                    Sectors[x, y] = new(this, new(x, y), level.Structure[x, y].RW, level.Structure[x, y].DW, voidPassage);
+                    Sectors[x, y] = new(this, new(x, y), level.Structure[x, y].RightWall, level.Structure[x, y].DownWall, level.Structure[x, y].NoCoin, voidPassage);
                 }
             Player = new(this, player);
             Player.Render();
@@ -205,11 +232,8 @@ namespace Pacman
                 g.Clear(Color.White);
                 for (int x = 0; x < TblSize.Width; x++)
                     for (int y = 0; y < TblSize.Height; y++)
-                    {
-                        g.DrawImage(Sectors[x, y].Background, Sectors[x, y].Bounds);
-                    }
-                if (Player != null)
-                    g.DrawImage(Player.Texture, Player.ImgLocation);
+                        Sectors[x, y].Draw(g);
+                Player?.Draw(g);
             }
             return img;
         }
@@ -251,17 +275,24 @@ namespace Pacman
         }
         public void CheckFinish()
         {
-            if (true)
+            if (Sectors.OfType<Sector>().SelectMany(S => S.Coins).All(C => C.geted))
             {
                 SyncContext.Post(GameOver, null);
             }
         }
+        public void GameEnd() => SyncContext.Post(GameOver, null);
         private void GameOver(object state)
         {
             Started = false;
-            OnGameOver?.Invoke(this, EventArgs.Empty);
+            OnGameOver?.Invoke(this, new(Player.Score));
         }
-        public event EventHandler OnGameOver;
+        public event EventHandler<GameOverEventArgs> OnGameOver;
+
+        public class GameOverEventArgs : EventArgs
+        {
+            public int Score { get; }
+            public GameOverEventArgs(int score) => Score = score;
+        }
 
         protected float GetSectorScale(Size formSize)
         {
@@ -319,12 +350,12 @@ namespace Pacman
 
         public Guid GUID { get; private set; }
         public void ChangeGUID(Guid guid) => GUID = guid;
-        public (bool RW, bool DW)[,] Structure { get; }
+        public (bool RightWall, bool DownWall, bool NoCoin)[,] Structure { get; }
         public Size Size => new(Structure.GetLength(0), Structure.GetLength(1));
         public Point Start { get; }
         public (int Index, Direction Direction) Portal { get; }
 
-        public Level((bool RW, bool DW)[,] structure, Point StartSector,
+        public Level((bool RightWall, bool DownWall, bool NoCoin)[,] structure, Point StartSector,
                      (int Index, Direction Direction) portal)
         {
             GUID = Guid.NewGuid();
@@ -353,7 +384,7 @@ namespace Pacman
             info.AddValue("Height", Size.Height);
             for (int x = 0; x < Size.Width; x++)
                 for (int y = 0; y < Size.Height; y++)
-                    info.AddValue($"{x},{y}", (Structure[x, y].RW ? 10 : 0) + (Structure[x, y].DW ? 1 : 0));
+                    info.AddValue($"{x},{y}", (Structure[x, y].RightWall ? 100 : 0) + (Structure[x, y].DownWall ? 10 : 0) + (Structure[x, y].NoCoin ? 1 : 0));
             info.AddValue("Start", $"{Start.X},{Start.Y}");
             info.AddValue("Portal", Portal.Index * 10 + (int)Portal.Direction);
         }
@@ -366,10 +397,10 @@ namespace Pacman
             for (int x = 0; x < width; x++)
                 for (int y = 0; y < height; y++)
                     structure[x, y] = info.GetInt32($"{x},{y}");
-            Structure = new (bool LW, bool UW)[width, height];
+            Structure = new (bool RightWall, bool DownWall, bool NoCoin)[width, height];
             for (int x = 0; x < width; x++)
                 for (int y = 0; y < height; y++)
-                    Structure[x, y] = (RW: structure[x, y] / 10 != 0, DW: structure[x, y] % 10 != 0);
+                    Structure[x, y] = (RightWall: structure[x, y] / 100 != 0, DownWall: structure[x, y] / 10 % 10 != 0, NoCoin: structure[x, y] % 10 != 0);
             int[] start = info.GetString("Start").Split(',').Select(int.Parse).ToArray();
             Start = new Point(start[0], start[1]);
             int portal = info.GetInt32("Portal");

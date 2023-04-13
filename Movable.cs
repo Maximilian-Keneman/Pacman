@@ -53,7 +53,8 @@ namespace Pacman
             if (direction == Direction.None || direction == Speed.Direction)
                 return;
             var sector = Owner.GetPositionSector(Center).sector;
-            if (sector.CanGo[direction])
+            if (sector.CanGo[direction] &&
+                PointF.Subtract(sector.Bounds.Center(), (Size)Center).ToSize().Length() < Owner.SectorScaleValue / 8)
             {
                 Speed.Direction = direction;
                 Render();
@@ -136,8 +137,16 @@ namespace Pacman
         }
 
         public abstract void Render();
+        public void Draw(Graphics g)
+        {
+            g.DrawImage(Texture, ImgLocation);
+            //g.DrawLine(Pens.Red, new PointF(Center.X, Bounds.Top), new PointF(Center.X, Bounds.Top - Distance.up));
+            //g.DrawLine(Pens.Red, new PointF(Bounds.Left, Center.Y), new PointF(Bounds.Left + Distance.left, Center.Y));
+            //g.DrawLine(Pens.Red, new PointF(Center.X, Bounds.Bottom), new PointF(Center.X, Bounds.Bottom + Distance.down));
+            //g.DrawLine(Pens.Red, new PointF(Bounds.Right, Center.Y), new PointF(Bounds.Right + Distance.right, Center.Y));
+        }
 
-        public string Debug(GameTable game)
+        public virtual string Debug(GameTable game)
         {
             Point position = game.GetPositionSector(Center).position;
             var (up, right, down, left) = Distance;

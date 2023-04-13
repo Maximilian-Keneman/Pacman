@@ -15,7 +15,7 @@ namespace Pacman
         {
             // Создаем ColorMatrix.
             float t = translucency;
-            ColorMatrix cm = new ColorMatrix(new float[][]
+            ColorMatrix cm = new(new float[][]
             {
                 new float[] {1, 0, 0, 0, 0},
                 new float[] {0, 1, 0, 0, 0},
@@ -23,18 +23,18 @@ namespace Pacman
                 new float[] {0, 0, 0, t, 0},
                 new float[] {0, 0, 0, 0, 1},
             });
-            ImageAttributes attributes = new ImageAttributes();
+            ImageAttributes attributes = new();
             attributes.SetColorMatrix(cm);
 
             // Нарисуем изображение на новом растровом изображении
             // применение новой ColorMatrix.
             Point[] points =
             {
-                new Point(0, 0),
-                new Point(image.Width, 0),
-                new Point(0, image.Height),
+                new(0, 0),
+                new(image.Width, 0),
+                new(0, image.Height),
             };
-            Rectangle rect = new Rectangle(0, 0, image.Width, image.Height);
+            Rectangle rect = new(0, 0, image.Width, image.Height);
 
             // Создаем растровое изображение результата.
             Image img = new Bitmap(image.Width, image.Height);
@@ -72,7 +72,7 @@ namespace Pacman
 
         public static void FillRound(this Graphics g, Brush brush, PointF center, float diameter)
         {
-            RectangleF rect = new RectangleF(center.X - diameter / 2, center.Y - diameter / 2, diameter, diameter);
+            RectangleF rect = new(center.X - diameter / 2, center.Y - diameter / 2, diameter, diameter);
             g.FillEllipse(brush, rect);
         }
         public static void DrawArrow(this Graphics g, Color color, RectangleF rect, float delta, float width, Direction direction)
@@ -97,9 +97,9 @@ namespace Pacman
                                    new PointF(rect.Left + delta, rect.Bottom)),
                 _ => throw direction.ThrowInvalidDirectionException()
             };
-            g.DrawLine(new Pen(color, width), p1, p2);
-            g.DrawLine(new Pen(color, width), p1, p3);
-            g.DrawLine(new Pen(color, width), p1, p4);
+            g.DrawLine(new(color, width), p1, p2);
+            g.DrawLine(new(color, width), p1, p3);
+            g.DrawLine(new(color, width), p1, p4);
             g.FillRound(new SolidBrush(color), p1, width);
         }
         public static Image Eyes(float diameter)
@@ -125,12 +125,12 @@ namespace Pacman
             Image img = new Bitmap(diameter.Floor(), diameter.Floor());
             using (Graphics g = Graphics.FromImage(img))
             {
-                (float angle, PointF peye) = direction switch
+                var (angle, peye) = direction switch
                 {
-                    Direction.Up => (-105, new PointF(0.25f * diameter, 0.25f * diameter)),
-                    Direction.Right => (-15, new PointF(0.75f * diameter, 0.25f * diameter)),
-                    Direction.Down => (75, new PointF(0.75f * diameter, 0.75f * diameter)),
-                    Direction.Left => (165, new PointF(0.25f * diameter, 0.25f * diameter)),
+                    Direction.Up => (-105f, new PointF(0.25f * diameter, 0.25f * diameter)),
+                    Direction.Right => (-15f, new PointF(0.75f * diameter, 0.25f * diameter)),
+                    Direction.Down => (75f, new PointF(0.75f * diameter, 0.75f * diameter)),
+                    Direction.Left => (165f, new PointF(0.25f * diameter, 0.25f * diameter)),
                     _ => throw direction.ThrowInvalidDirectionException(),
                 };
                 g.FillPie(new SolidBrush(body), 0, 0, diameter, diameter, angle, -330);
@@ -153,12 +153,15 @@ namespace Pacman
 
     public static partial class Expansion
     {
-        public static PointF Center(this RectangleF rect) => new PointF(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
+        public static PointF Center(this RectangleF rect) => new(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
+        public static double Length(this Size vector) => Math.Sqrt(Math.Pow(vector.Width, 2) + Math.Pow(vector.Height, 2));
+        public static double Length(this SizeF vector) => Math.Sqrt(Math.Pow(vector.Width, 2) + Math.Pow(vector.Height, 2));
+        public static SizeF ToSize(this PointF point) => new(point.X, point.Y);
 
         public static T[] ToArray<T>(this (T V1, T V2) tuple) => new T[] { tuple.V1, tuple.V2 };
         public static T[] ToArray<T>(this (T V1, T V2, T V3) tuple) => new T[] { tuple.V1, tuple.V2, tuple.V3 };
         public static T[] ToArray<T>(this (T V1, T V2, T V3, T V4) tuple) => new T[] { tuple.V1, tuple.V2, tuple.V3, tuple.V4 };
-        public static (bool, bool) ToBool(this (int n1, int n2) v) => (v.n1 != 0, v.n2 != 0);
+        public static (bool, bool, bool) ToBool(this (int n1, int n2, int n3) v) => (v.n1 != 0, v.n2 != 0, v.n3 != 0);
         public static int Round(this float f) => (int)Math.Round(f);
         public static int Floor(this float f) => (int)Math.Floor(f);
         public static void Act<T>(this IEnumerable<T> collection, Action<T> action)
@@ -174,7 +177,7 @@ namespace Pacman
         {
             return crypt.Split(' ')
                         .Select(s => Convert.ToInt32(s.StartsWith("0x") ? s.Substring(2) : s, 16))
-                        .Select(d => char.ConvertFromUtf32(d))
+                        .Select(char.ConvertFromUtf32)
                         .Aggregate((S, s) => S + s);
         }
         public static string GetFileName(this string path)
