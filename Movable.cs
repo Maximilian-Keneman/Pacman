@@ -5,20 +5,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Platformer
+namespace Pacman
 {
     public abstract class Movable
     {
         protected GameTable Owner;
-        public (int vertical, int horizontal) Speed;
+        public (InvertVectorF Value, int MaxValue, Direction Direction) Speed;
         protected RectangleF Bounds;
-        protected InvertVectorF Vector = InvertVectorF.Empty;
         private (float up, float right, float down, float left) Distance;
 
         protected Movable(GameTable owner)
         {
             Owner = owner;
-            Speed = (0, 0);
+            Speed = (new(0, 0), 0, Direction.None);
         }
 
         public Image Texture { get; protected set; }
@@ -50,17 +49,33 @@ namespace Platformer
 
         public void Update(object sender, EventArgs e)
         {
-
-
-            var (sector, position) = Owner.GetPositionSector(Center);
+            switch (Speed.Direction)
+            {
+                case Direction.None:
+                    Speed.Value = new();
+                    break;
+                case Direction.Up:
+                    Speed.Value = new(0, Speed.MaxValue);
+                    break;
+                case Direction.Right:
+                    Speed.Value = new(Speed.MaxValue, 0);
+                    break;
+                case Direction.Down:
+                    Speed.Value = new(0, -Speed.MaxValue);
+                    break;
+                case Direction.Left:
+                    Speed.Value = new(-Speed.MaxValue, 0);
+                    break;
+            }
+            var (sector, _) = Owner.GetPositionSector(Center);
             UpdateDistanceToWalls(sector);
             float wallBound = Owner.BParametrs.WallBound;
-            if (Distance.right < 1 - wallBound && Vector.X > 0 || Distance.left < 1 - wallBound && Vector.X < 0)
-                Vector.X = 0;
-            if (Distance.up < 1 - wallBound && Vector.Y > 0 || Distance.down < 1 - wallBound && Vector.Y < 0)
-                Vector.Y = 0;
-            Bounds.Location += Vector;
-            InvertVectorF ejection = new InvertVectorF();
+            if (Distance.right < 1 - wallBound && Speed.Value.X > 0 || Distance.left < 1 - wallBound && Speed.Value.X < 0)
+                Speed.Value.X = 0;
+            if (Distance.up < 1 - wallBound && Speed.Value.Y > 0 || Distance.down < 1 - wallBound && Speed.Value.Y < 0)
+                Speed.Value.Y = 0;
+            Bounds.Location += Speed.Value;
+            InvertVectorF ejection = new();
             if (Distance.up < -wallBound)
                 ejection.Y = Distance.up + wallBound;
             else if (Distance.down < -wallBound)
@@ -71,16 +86,14 @@ namespace Platformer
                 ejection.X = -Distance.left - wallBound;
             Bounds.Location += ejection;
             if (sector != null)
-                if (sector.CornerBounds[Direction.Up].ToArray().Any(B => B.Contains(Center)))
-                {
-                    Bounds.Location += new InvertVectorF() { X = 0, Y = -Bounds.Height / 2 };
-                    Vector.Y = 0;
-                }
-                else if (sector.CornerBounds[Direction.Down].ToArray().Any(B => B.Contains(Center)))
-                {
-                    Bounds.Location += new InvertVectorF() { X = 0, Y = Bounds.Height / 2 };
-                    Vector.Y = 0;
-                }
+                if (sector.CornerBounds[Direction.Up].right.Contains(Center))
+                    Bounds.Location += new SizeF() { Width = -Bounds.Width / 2, Height = -Bounds.Height / 2 };
+                else if (sector.CornerBounds[Direction.Up].left.Contains(Center))
+                    Bounds.Location += new SizeF() { Width = Bounds.Width / 2, Height = -Bounds.Height / 2 };
+                else if (sector.CornerBounds[Direction.Down].right.Contains(Center))
+                    Bounds.Location += new SizeF() { Width = -Bounds.Width / 2, Height = Bounds.Height / 2 };
+                else if (sector.CornerBounds[Direction.Down].left.Contains(Center))
+                    Bounds.Location += new SizeF() { Width = Bounds.Width / 2, Height = Bounds.Height / 2 };
         }
 
         public abstract void Render();
@@ -89,7 +102,7 @@ namespace Platformer
         {
             Point position = game.GetPositionSector(Center).position;
             var (up, right, down, left) = Distance;
-            return $"Sector {position}\nSpeed H={Vector.X}, V={Vector.Y}\nUp {up}\nDown {down}\nLeft {left}\nRight {right}";
+            return $"Sector {position}\nSpeed V={Speed.Value}\nUp {up}\nDown {down}\nLeft {left}\nRight {right}";
         }
     }
 
@@ -117,18 +130,15 @@ namespace Platformer
             Bounds = new RectangleF(new PointF(0, 0), new SizeF(scale / 40 * 11, scale / 4 * 3));
             //int ImgSectorSize = 200;
             //Size ImgSize = new Size(ImgSectorSize / 40 * 11, ImgSectorSize / 4 * 3);
-            //Texture = new Bitmap(Properties.Resources.StandartPlayer, Size.Truncate(Bounds.Size));
+            Texture = Images.Pacman(Owner.SectorScaleValue * 3 / 4, Speed.Direction);
             //Images.GetFragment(Properties.Resources.StandartPlayer, ImgSize, new Rectangle(new Point(0, 0), ImgSize), Bounds.Size);
         }
 
         public void ApllyDamage(int damage)
         {
-            Health -= damage;
+            Health--;
             if (Health <= 0)
-            {
-                Health = 0;
                 Dead();
-            }
         }
 
         public void Dead()
@@ -149,12 +159,18 @@ namespace Platformer
 
     public struct InvertVectorF
     {
-        public static InvertVectorF Empty => new InvertVectorF();
+        public static InvertVectorF Empty => new();
 
         public float X;
         public float Y;
 
-        public static PointF operator +(PointF p, InvertVectorF v) => new PointF(p.X + v.X, p.Y - v.Y);
+        public InvertVectorF(float x, float y)
+        {
+            X = x;
+            Y = y;
+        }
+
+        public static PointF operator +(PointF p, InvertVectorF v) => new(p.X + v.X, p.Y - v.Y);
 
         public override string ToString() => $"X = {X}, Y = {Y}";
     }

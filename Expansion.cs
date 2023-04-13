@@ -6,7 +6,7 @@ using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
 
-namespace Platformer
+namespace Pacman
 {
     public static class Images
     {
@@ -62,6 +62,13 @@ namespace Platformer
                 g.FillRectangle(new SolidBrush(color), 0, 0, sizeF.Width, sizeF.Height);
             return img;
         }
+        public static Image GetRound(Color color, float diameter)
+        {
+            Image img = new Bitmap(diameter.Floor(), diameter.Floor());
+            using (Graphics g = Graphics.FromImage(img))
+                g.FillRound(new SolidBrush(color), new(0, 0), diameter);
+            return img;
+        }
 
         public static void FillRound(this Graphics g, Brush brush, PointF center, float diameter)
         {
@@ -95,6 +102,53 @@ namespace Platformer
             g.DrawLine(new Pen(color, width), p1, p4);
             g.FillRound(new SolidBrush(color), p1, width);
         }
+        public static Image Eyes(float diameter)
+        {
+            Color white = Color.White,
+                  pupil = Color.Black;
+            Image img = new Bitmap((2.25f * diameter).Floor(), diameter.Floor());
+            using (Graphics g = Graphics.FromImage(img))
+            {
+                g.FillRound(new SolidBrush(white), new(0.5f * diameter, 0.5f * diameter), diameter);
+                g.FillRound(new SolidBrush(pupil), new(0.5f * diameter, 0.5f * diameter), diameter / 2);
+                g.FillRound(new SolidBrush(white), new(1.75f * diameter, 0.5f * diameter), diameter);
+                g.FillRound(new SolidBrush(pupil), new(1.75f * diameter, 0.5f * diameter), diameter / 2);
+            }
+            return img;
+        }
+        public static Image Pacman(float diameter, Direction direction)
+        {
+            Color body = Color.Yellow,
+                  eye = Color.Black;
+            if (direction == Direction.None)
+                return GetRound(body, diameter);
+            Image img = new Bitmap(diameter.Floor(), diameter.Floor());
+            using (Graphics g = Graphics.FromImage(img))
+            {
+                (float angle, PointF peye) = direction switch
+                {
+                    Direction.Up => (-105, new PointF(0.25f * diameter, 0.25f * diameter)),
+                    Direction.Right => (-15, new PointF(0.75f * diameter, 0.25f * diameter)),
+                    Direction.Down => (75, new PointF(0.75f * diameter, 0.75f * diameter)),
+                    Direction.Left => (165, new PointF(0.25f * diameter, 0.25f * diameter)),
+                    _ => throw direction.ThrowInvalidDirectionException(),
+                };
+                g.FillPie(new SolidBrush(body), 0, 0, diameter, diameter, angle, -330);
+                g.FillRound(new SolidBrush(eye), peye, diameter / 4);
+            }
+            return img;
+        }
+        public static Image Ghost(float diameter, Color color)
+        {
+            Image img = new Bitmap((1.5f * diameter).Floor(), diameter.Floor());
+            using (Graphics g = Graphics.FromImage(img))
+            {
+                g.FillRound(new SolidBrush(color), new(diameter / 2, diameter / 2), diameter);
+                g.FillRectangle(new SolidBrush(color), new RectangleF(new(0, 0.5f * diameter), new(diameter, diameter)));
+                g.DrawImage(Eyes(0.2f * diameter), 0.25f * diameter, 0.25f * diameter);
+            }
+            return img;
+        }
     }
 
     public static partial class Expansion
@@ -106,6 +160,7 @@ namespace Platformer
         public static T[] ToArray<T>(this (T V1, T V2, T V3, T V4) tuple) => new T[] { tuple.V1, tuple.V2, tuple.V3, tuple.V4 };
         public static (bool, bool) ToBool(this (int n1, int n2) v) => (v.n1 != 0, v.n2 != 0);
         public static int Round(this float f) => (int)Math.Round(f);
+        public static int Floor(this float f) => (int)Math.Floor(f);
         public static void Act<T>(this IEnumerable<T> collection, Action<T> action)
         {
             foreach (var item in collection)

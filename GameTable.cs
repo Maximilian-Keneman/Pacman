@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Platformer
+namespace Pacman
 {
     public enum Direction
     {
@@ -67,7 +67,7 @@ namespace Platformer
             (int W, int D) = GetWallDir();
             int ImgSectorSize = 200;
             Size ImgSize = new Size(ImgSectorSize, ImgSectorSize);
-            //Background = Images.GetFragment(Properties.Resources.Standart, ImgSize, new RectangleF(new PointF(D * ImgSectorSize, (4 - W) * ImgSectorSize), ImgSize), System.Drawing.Size.Truncate(Size));
+            Background = Images.GetFragment(Properties.Resources.StandartWalls, ImgSize, new RectangleF(new PointF(D * ImgSectorSize, (4 - W) * ImgSectorSize), ImgSize), System.Drawing.Size.Truncate(Size));
         }
 
         public Sector(GameTable table, Point tblPosition, bool RW, bool DW, Direction voidPassage = Direction.None)
@@ -184,7 +184,6 @@ namespace Platformer
             using (Graphics g = Graphics.FromImage(img))
             {
                 g.Clear(Color.White);
-                List<int> usingID = new List<int>();
                 for (int x = 0; x < TblSize.Width; x++)
                     for (int y = 0; y < TblSize.Height; y++)
                     {
@@ -266,7 +265,7 @@ namespace Platformer
         public string Debug()
         {
             return $"PacmanSpeed {PParametrs.PacmanSpeed}\nGhostSpeed {PParametrs.GhostSpeed}\nEyesSpeed {PParametrs.EyesSpeed}\n" +
-                   $"WallBound {BParametrs.WallBound}\nOffset {BParametrs.Offset}";
+                   $"WallBound {BParametrs.WallBound}";
         }
 
         public struct PhisicParametrs
@@ -285,12 +284,10 @@ namespace Platformer
         public struct BoundsParametrs
         {
             public float WallBound { get; }
-            public float Offset { get; }
 
             public BoundsParametrs(float sectorScale)
             {
                 WallBound = sectorScale * 0.5f;
-                Offset = sectorScale * 0.03f;
             }
         }
     }
