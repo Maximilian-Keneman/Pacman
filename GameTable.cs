@@ -23,7 +23,7 @@ namespace Pacman
     {
         private GameTable Owner;
         private Point TblPosition;
-        public Dictionary<Direction, Sector> NeighborSector => new Dictionary<Direction, Sector>
+        public Dictionary<Direction, Sector> NeighborSector => new()
         {
             { Direction.Up, TblPosition.X > 0 ? Owner[TblPosition + new Size(-1, 0)] : null },
             { Direction.Right, TblPosition.Y < Owner.TblSize.Height - 1 ? Owner[TblPosition + new Size(0, 1)] : null },
@@ -32,8 +32,8 @@ namespace Pacman
         };
         protected bool RightWall;
         protected bool DownWall;
-        protected Direction VoidPassage;
-        public Dictionary<Direction, bool> CanGo => new Dictionary<Direction, bool>
+        public Direction VoidPassage { get; }
+        public Dictionary<Direction, bool> CanGo => new()
         {
             { Direction.Up, !NeighborSector[Direction.Up]?.DownWall ?? VoidPassage == Direction.Up },
             { Direction.Right, !RightWall },
@@ -41,14 +41,14 @@ namespace Pacman
             { Direction.Left, !NeighborSector[Direction.Left]?.RightWall ?? VoidPassage == Direction.Left }
         };
 
-        public Dictionary<Direction, RectangleF> WallBounds => new Dictionary<Direction, RectangleF>
+        public Dictionary<Direction, RectangleF> WallBounds => new()
         {
             { Direction.Up, CanGo[Direction.Up] ? RectangleF.Empty : new RectangleF(ImgLocation.X, ImgLocation.Y, Scale, Scale / 10) },
             { Direction.Right, CanGo[Direction.Right] ? RectangleF.Empty : new RectangleF(ImgLocation.X + Scale * 9 / 10, ImgLocation.Y, Scale / 10, Scale) },
             { Direction.Down, CanGo[Direction.Down] ? RectangleF.Empty : new RectangleF(ImgLocation.X, ImgLocation.Y + Scale * 9 / 10, Scale, Scale / 10) },
             { Direction.Left, CanGo[Direction.Left] ? RectangleF.Empty : new RectangleF(ImgLocation.X, ImgLocation.Y, Scale / 10, Scale) }
         };
-        public Dictionary<Direction, (RectangleF left, RectangleF right)> CornerBounds => new Dictionary<Direction, (RectangleF left, RectangleF right)>
+        public Dictionary<Direction, (RectangleF left, RectangleF right)> CornerBounds => new()
         {
             { Direction.Up, (new RectangleF(ImgLocation.X, ImgLocation.Y, Scale / 10, Scale / 10),
                              new RectangleF(ImgLocation.X + Scale * 9 / 10, ImgLocation.Y, Scale / 10, Scale / 10)) },
@@ -56,17 +56,17 @@ namespace Pacman
                                new RectangleF(ImgLocation.X + Scale * 9 / 10, ImgLocation.Y + Scale * 9 / 10, Scale / 10, Scale / 10)) }
         };
 
-        private PointF ImgLocation => new PointF(TblPosition.Y * Scale, TblPosition.X * Scale);
+        private PointF ImgLocation => new(TblPosition.Y * Scale, TblPosition.X * Scale);
         private SizeF Size => Owner.SectorScale;
         public float Scale => Owner.SectorScaleValue;
-        public RectangleF Bounds => new RectangleF(ImgLocation, Size);
+        public RectangleF Bounds => new(ImgLocation, Size);
         public Image Background { get; private set; }
 
         public void PaintBackground()
         {
             (int W, int D) = GetWallDir();
             int ImgSectorSize = 200;
-            Size ImgSize = new Size(ImgSectorSize, ImgSectorSize);
+            Size ImgSize = new(ImgSectorSize, ImgSectorSize);
             Background = Images.GetFragment(Properties.Resources.StandartWalls, ImgSize, new RectangleF(new PointF(D * ImgSectorSize, (4 - W) * ImgSectorSize), ImgSize), System.Drawing.Size.Truncate(Size));
         }
 
@@ -113,10 +113,10 @@ namespace Pacman
                                        X >= 0 && Y >= 0 ?
                                        Sectors[X, Y] : null;
         public Sector this[Point p] => this[p.X, p.Y];
-        public Size TblSize => new Size(Sectors.GetLength(0), Sectors.GetLength(1));
+        public Size TblSize => new(Sectors.GetLength(0), Sectors.GetLength(1));
         public Size ImgSize { get; protected set; }
         public float SectorScaleValue { get; protected set; }
-        public SizeF SectorScale => new SizeF(SectorScaleValue, SectorScaleValue);
+        public SizeF SectorScale => new(SectorScaleValue, SectorScaleValue);
         
         private bool started = false;
         public bool Started
@@ -142,23 +142,42 @@ namespace Pacman
             Level = level.GUID;
             Sectors = new Sector[level.Size.Width, level.Size.Height];
             SectorScaleValue = GetSectorScale(formSize);
-            PParametrs = new PhisicParametrs(SectorScaleValue);
-            BParametrs = new BoundsParametrs(SectorScaleValue);
-            ImgSize = Size.Truncate(new SizeF(TblSize.Height * SectorScaleValue, TblSize.Width * SectorScaleValue));
+            PParametrs = new(SectorScaleValue);
+            BParametrs = new(SectorScaleValue);
+            ImgSize = Size.Truncate(new(TblSize.Height * SectorScaleValue, TblSize.Width * SectorScaleValue));
             box.UpdateImage(new Bitmap(ImgSize.Width, ImgSize.Height));
             StartSector = level.Start;
             for (int x = 0; x < TblSize.Width; x++)
                 for (int y = 0; y < TblSize.Height; y++)
                 {
                     Direction voidPassage = Direction.None;
-                    Sectors[x, y] = new Sector(this, new Point(x, y), level.Structure[x, y].RW, level.Structure[x, y].DW, voidPassage);
+                    switch (level.Portal.Direction)
+                    {
+                        case Direction.Up:
+                        case Direction.Down:
+                            if (y == level.Portal.Index)
+                                if (x == 0)
+                                    voidPassage = Direction.Up;
+                                else if (x == TblSize.Width - 1)
+                                    voidPassage = Direction.Down;
+                            break;
+                        case Direction.Right:
+                        case Direction.Left:
+                            if (x == level.Portal.Index)
+                                if (y == 0)
+                                    voidPassage = Direction.Left;
+                                else if (y == TblSize.Height - 1)
+                                    voidPassage = Direction.Right;
+                            break;
+                    }
+                    Sectors[x, y] = new(this, new(x, y), level.Structure[x, y].RW, level.Structure[x, y].DW, voidPassage);
                 }
-            Player = new Player(this, player);
+            Player = new(this, player);
             Player.Render();
             UpdateEvent += Player.Update;
             OnPaint(box);
-            PaintUpdate = new Timer(OnPaint, box, -1, 100);
-            PhisicUpdate = new Timer(Update, null, -1, 100);
+            PaintUpdate = new(OnPaint, box, -1, 100);
+            PhisicUpdate = new(Update, null, -1, 100);
 
             SyncContext = SynchronizationContext.Current ?? new SynchronizationContext();
         }
@@ -214,7 +233,7 @@ namespace Pacman
         protected void PlayerToStart()
         {
             RectangleF startWall = this[StartSector.Value].Bounds;
-            Player.TpTo(new PointF(startWall.Left + startWall.Width / 2, startWall.Top + startWall.Height / 2));
+            Player.TpTo(new(startWall.Left + startWall.Width / 2, startWall.Top + startWall.Height / 2));
             Player.ChangeDirection(Direction.Left);
         }
         public void GameStart()
@@ -259,7 +278,7 @@ namespace Pacman
                 x = -1;
             if (imgLocation.X < 0 && y == 0)
                 y = -1;
-            Point p = new Point(x, y);
+            Point p = new(x, y);
             return (this[p], p);
         }
 
@@ -296,31 +315,34 @@ namespace Pacman
     [Serializable]
     public struct Level : ISerializable
     {
-        public static readonly Level Empty = new Level();
+        public static readonly Level Empty = new();
 
         public Guid GUID { get; private set; }
         public void ChangeGUID(Guid guid) => GUID = guid;
         public (bool RW, bool DW)[,] Structure { get; }
-        public Size Size => new Size(Structure.GetLength(0), Structure.GetLength(1));
+        public Size Size => new(Structure.GetLength(0), Structure.GetLength(1));
         public Point Start { get; }
+        public (int Index, Direction Direction) Portal { get; }
 
-        public Level((bool RW, bool DW)[,] structure, Point StartSector)
+        public Level((bool RW, bool DW)[,] structure, Point StartSector,
+                     (int Index, Direction Direction) portal)
         {
             GUID = Guid.NewGuid();
             Structure = structure;
             Start = StartSector;
+            Portal = portal;
         }
 
         public void Save(string path)
         {
-            BinaryFormatter F = new BinaryFormatter();
-            using FileStream fs = new FileStream(path, FileMode.CreateNew, FileAccess.Write);
+            BinaryFormatter F = new();
+            using FileStream fs = new(path, FileMode.CreateNew, FileAccess.Write);
             F.Serialize(fs, this);
         }
         public static Level Load(string path)
         {
-            BinaryFormatter F = new BinaryFormatter();
-            using FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+            BinaryFormatter F = new();
+            using FileStream fs = new(path, FileMode.Open, FileAccess.Read);
             return (Level)F.Deserialize(fs);
         }
 
@@ -333,6 +355,7 @@ namespace Pacman
                 for (int y = 0; y < Size.Height; y++)
                     info.AddValue($"{x},{y}", (Structure[x, y].RW ? 10 : 0) + (Structure[x, y].DW ? 1 : 0));
             info.AddValue("Start", $"{Start.X},{Start.Y}");
+            info.AddValue("Portal", Portal.Index * 10 + (int)Portal.Direction);
         }
         private Level(SerializationInfo info, StreamingContext context)
         {
@@ -349,6 +372,8 @@ namespace Pacman
                     Structure[x, y] = (RW: structure[x, y] / 10 != 0, DW: structure[x, y] % 10 != 0);
             int[] start = info.GetString("Start").Split(',').Select(int.Parse).ToArray();
             Start = new Point(start[0], start[1]);
+            int portal = info.GetInt32("Portal");
+            Portal = (portal / 10, (Direction)(portal % 10));
         }
     }
 

@@ -13,6 +13,7 @@ namespace Pacman
         public (InvertVectorF Value, int MaxValue, Direction Direction) Speed;
         protected RectangleF Bounds;
         private (float up, float right, float down, float left) Distance;
+        private Sector LastSector = null;
 
         protected Movable(GameTable owner)
         {
@@ -109,6 +110,28 @@ namespace Pacman
                     Bounds.Location += new SizeF(-Bounds.Width / 2, Bounds.Height / 2);
                 else if (sector.CornerBounds[Direction.Down].left.Contains(Center))
                     Bounds.Location += new SizeF(Bounds.Width / 2, Bounds.Height / 2);
+            if (sector == null)
+            {
+                switch (LastSector.VoidPassage)
+                {
+                    case Direction.Up:
+                        Bounds.Location += new SizeF(0, Owner.ImgSize.Height);
+                        break;
+                    case Direction.Right:
+                        Bounds.Location -= new SizeF(Owner.ImgSize.Width, 0);
+                        break;
+                    case Direction.Down:
+                        Bounds.Location -= new SizeF(0, Owner.ImgSize.Height);
+                        break;
+                    case Direction.Left:
+                        Bounds.Location += new SizeF(Owner.ImgSize.Width, 0);
+                        break;
+                }
+                sector = Owner.GetPositionSector(Center).sector;
+                UpdateDistanceToWalls(sector);
+            }
+            if (LastSector != sector)
+                LastSector = sector;
             ChangeDirection(SavedDirection);
         }
 

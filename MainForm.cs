@@ -44,7 +44,7 @@ namespace Pacman
             for (int x = 0; x < intLevel.GetLength(0); x++)
                 for (int y = 0; y < intLevel.GetLength(1); y++)
                     boolLevel[x, y] = intLevel[x, y].ToBool();
-            Levels.Add(new Level(boolLevel, new Point(13, 8)));
+            Levels.Add(new Level(boolLevel, new Point(13, 8), (8, Direction.Right)));
             intLevel = new (int RW, int DW)[11, 12]
             {
                 { (0,0), (0,1), (0,0), (0,1), (0,1), (1,0), (0,0), (0,1), (0,1), (0,0), (0,1), (1,0) },
@@ -63,7 +63,7 @@ namespace Pacman
             for (int x = 0; x < intLevel.GetLength(0); x++)
                 for (int y = 0; y < intLevel.GetLength(1); y++)
                     boolLevel[x, y] = intLevel[x, y].ToBool();
-            Levels.Add(new Level(boolLevel, new Point(8, 5)));
+            Levels.Add(new Level(boolLevel, new Point(8, 5), (5, Direction.Right)));
         }
 
         private void NewGameTool_Click(object sender, EventArgs e)
