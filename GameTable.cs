@@ -215,6 +215,7 @@ namespace Pacman
         {
             RectangleF startWall = this[StartSector.Value].Bounds;
             Player.TpTo(new PointF(startWall.Left + startWall.Width / 2, startWall.Top + startWall.Height / 2));
+            Player.ChangeDirection(Direction.Left);
         }
         public void GameStart()
         {
@@ -276,9 +277,9 @@ namespace Pacman
 
             public PhisicParametrs(float sectorScale)
             {
-                PacmanSpeed = (sectorScale * 0.09f).Round();
-                GhostSpeed = (sectorScale * 0.09f).Round();
-                EyesSpeed = (sectorScale * 0.09f).Round();
+                PacmanSpeed = (sectorScale * 0.2f).Round();
+                GhostSpeed = (sectorScale * 0.15f).Round();
+                EyesSpeed = (sectorScale * 0.3f).Round();
             }
         }
         public struct BoundsParametrs
@@ -287,7 +288,7 @@ namespace Pacman
 
             public BoundsParametrs(float sectorScale)
             {
-                WallBound = sectorScale * 0.5f;
+                WallBound = 0.5f;
             }
         }
     }

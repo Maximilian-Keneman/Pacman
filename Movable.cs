@@ -46,6 +46,21 @@ namespace Pacman
             }
             Distance = (up, right, down, left);
         }
+        private Direction SavedDirection = Direction.None;
+        public void ChangeDirection(Direction direction)
+        {
+            if (direction == Direction.None || direction == Speed.Direction)
+                return;
+            var sector = Owner.GetPositionSector(Center).sector;
+            if (sector.CanGo[direction])
+            {
+                Speed.Direction = direction;
+                Render();
+                SavedDirection = Direction.None;
+            }
+            else
+                SavedDirection = direction;
+        }
 
         public void Update(object sender, EventArgs e)
         {
@@ -70,9 +85,9 @@ namespace Pacman
             var (sector, _) = Owner.GetPositionSector(Center);
             UpdateDistanceToWalls(sector);
             float wallBound = Owner.BParametrs.WallBound;
-            if (Distance.right < 1 - wallBound && Speed.Value.X > 0 || Distance.left < 1 - wallBound && Speed.Value.X < 0)
+            if (Distance.right < 1 - wallBound && Speed.Direction == Direction.Right || Distance.left < 1 - wallBound && Speed.Direction == Direction.Left)
                 Speed.Value.X = 0;
-            if (Distance.up < 1 - wallBound && Speed.Value.Y > 0 || Distance.down < 1 - wallBound && Speed.Value.Y < 0)
+            if (Distance.up < 1 - wallBound && Speed.Direction == Direction.Up || Distance.down < 1 - wallBound && Speed.Direction == Direction.Down)
                 Speed.Value.Y = 0;
             Bounds.Location += Speed.Value;
             InvertVectorF ejection = new();
@@ -87,13 +102,14 @@ namespace Pacman
             Bounds.Location += ejection;
             if (sector != null)
                 if (sector.CornerBounds[Direction.Up].right.Contains(Center))
-                    Bounds.Location += new SizeF() { Width = -Bounds.Width / 2, Height = -Bounds.Height / 2 };
+                    Bounds.Location += new SizeF(-Bounds.Width / 2, -Bounds.Height / 2);
                 else if (sector.CornerBounds[Direction.Up].left.Contains(Center))
-                    Bounds.Location += new SizeF() { Width = Bounds.Width / 2, Height = -Bounds.Height / 2 };
+                    Bounds.Location += new SizeF(Bounds.Width / 2, -Bounds.Height / 2);
                 else if (sector.CornerBounds[Direction.Down].right.Contains(Center))
-                    Bounds.Location += new SizeF() { Width = -Bounds.Width / 2, Height = Bounds.Height / 2 };
+                    Bounds.Location += new SizeF(-Bounds.Width / 2, Bounds.Height / 2);
                 else if (sector.CornerBounds[Direction.Down].left.Contains(Center))
-                    Bounds.Location += new SizeF() { Width = Bounds.Width / 2, Height = Bounds.Height / 2 };
+                    Bounds.Location += new SizeF(Bounds.Width / 2, Bounds.Height / 2);
+            ChangeDirection(SavedDirection);
         }
 
         public abstract void Render();
@@ -113,48 +129,6 @@ namespace Pacman
 
         public void ApllyDamage(int damage);
         public void Dead();
-    }
-
-    public class Player : Movable, IDamagable
-    {
-        public int MaxHealth { get; }
-        public int Health { get; private set; }
-
-        public Player(GameTable owner, PlayerArgs args) : base(owner)
-        {
-            MaxHealth = args.MaxHealth;
-        }
-        public override void Render()
-        {
-            float scale = Owner.SectorScaleValue;
-            Bounds = new RectangleF(new PointF(0, 0), new SizeF(scale / 40 * 11, scale / 4 * 3));
-            //int ImgSectorSize = 200;
-            //Size ImgSize = new Size(ImgSectorSize / 40 * 11, ImgSectorSize / 4 * 3);
-            Texture = Images.Pacman(Owner.SectorScaleValue * 3 / 4, Speed.Direction);
-            //Images.GetFragment(Properties.Resources.StandartPlayer, ImgSize, new Rectangle(new Point(0, 0), ImgSize), Bounds.Size);
-        }
-
-        public void ApllyDamage(int damage)
-        {
-            Health--;
-            if (Health <= 0)
-                Dead();
-        }
-
-        public void Dead()
-        {
-            throw new NotImplementedException();
-        }
-
-        public struct PlayerArgs
-        {
-            public int MaxHealth { get; }
-
-            public PlayerArgs(int maxHealth)
-            {
-                MaxHealth = maxHealth;
-            }
-        }
     }
 
     public struct InvertVectorF

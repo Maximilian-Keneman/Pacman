@@ -28,10 +28,12 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.GameBox = new System.Windows.Forms.PictureBox();
             this.DebugBox = new System.Windows.Forms.RichTextBox();
             this.MainMenu = new System.Windows.Forms.MenuStrip();
             this.NewGameTool = new System.Windows.Forms.ToolStripMenuItem();
+            this.DebugTimer = new System.Windows.Forms.Timer(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.GameBox)).BeginInit();
             this.MainMenu.SuspendLayout();
             this.SuspendLayout();
@@ -70,6 +72,11 @@
             this.NewGameTool.Name = "NewGameTool";
             this.NewGameTool.Size = new System.Drawing.Size(77, 20);
             this.NewGameTool.Text = "New Game";
+            this.NewGameTool.Click += new System.EventHandler(this.NewGameTool_Click);
+            // 
+            // DebugTimer
+            // 
+            this.DebugTimer.Tick += new System.EventHandler(this.DebugTimer_Tick);
             // 
             // MainForm
             // 
@@ -82,6 +89,7 @@
             this.MainMenuStrip = this.MainMenu;
             this.Name = "MainForm";
             this.Text = "MainForm";
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.MainForm_KeyDown);
             ((System.ComponentModel.ISupportInitialize)(this.GameBox)).EndInit();
             this.MainMenu.ResumeLayout(false);
             this.MainMenu.PerformLayout();
@@ -96,6 +104,7 @@
         private System.Windows.Forms.RichTextBox DebugBox;
         private System.Windows.Forms.MenuStrip MainMenu;
         private System.Windows.Forms.ToolStripMenuItem NewGameTool;
+        private System.Windows.Forms.Timer DebugTimer;
     }
 }
 
