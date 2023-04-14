@@ -58,7 +58,7 @@ namespace Pacman
                                new RectangleF(ImgLocation.X + Scale * 9 / 10, ImgLocation.Y + Scale * 9 / 10, Scale / 10, Scale / 10)) }
         };
 
-        public (RectangleF bounds, bool geted)[] Coins;
+        public (RectangleF bounds, bool geted, bool energetic)[] Coins;
 
         private PointF ImgLocation => new(TblPosition.Y * Scale, TblPosition.X * Scale);
         private SizeF Size => Owner.SectorScale;
@@ -76,12 +76,12 @@ namespace Pacman
         public void Draw(Graphics g)
         {
             g.DrawImage(Background, Bounds);
-            foreach (var (coinBounds, coinGeted) in Coins)
+            foreach (var (coinBounds, coinGeted, _) in Coins)
                 if (!coinGeted)
                     g.FillRectangle(new SolidBrush(Color.Black), coinBounds);
         }
 
-        public Sector(GameTable table, Point tblPosition, bool rightWall, bool downWall, bool noCoins, Direction voidPassage = Direction.None)
+        public Sector(GameTable table, Point tblPosition, bool rightWall, bool downWall, bool noCoins, bool energetic, Direction voidPassage = Direction.None)
         {
             Owner = table;
             TblPosition = tblPosition;
@@ -89,22 +89,20 @@ namespace Pacman
             DownWall = downWall;
             VoidPassage = voidPassage;
             if (noCoins)
-                Coins = new (RectangleF bounds, bool geted)[0];
+                Coins = new (RectangleF bounds, bool geted, bool energetic)[0];
             else
             {
-                var coinBounds = new RectangleF(9 * Scale / 20, 9 * Scale / 20, Scale / 10, Scale / 10);
-                var coins = new List<RectangleF> { coinBounds };
+                var coinSize = new SizeF(Scale / 10, Scale / 10);
+                var coins = new List<RectangleF>
+                {
+                    energetic ? new(Scale * 2 / 5, Scale * 2 / 5, Scale / 5, Scale / 5) : new(new(9 * Scale / 20, 9 * Scale / 20), coinSize)
+                };
                 if (CanGo[Direction.Up] && NeighborSector[Direction.Up]?.Coins.Length != 0)
-                {
-                    coinBounds.Location = new(9 * Scale / 20, -Scale / 20);
-                    coins.Add(coinBounds);
-                }
+                    coins.Add(new(new(Scale * 9 / 20, -Scale / 20), coinSize));
                 if (CanGo[Direction.Left] && NeighborSector[Direction.Left]?.Coins.Length != 0)
-                {
-                    coinBounds.Location = new(-Scale / 20, 9 * Scale / 20);
-                    coins.Add(coinBounds);
-                }
-                Coins = coins.Select(C => { C.Offset(ImgLocation); return (bounds: C, geted: false); }).ToArray();
+                    coins.Add(new(new(-Scale / 20, Scale * 9 / 20), coinSize));
+                Coins = coins.Select(C => { C.Offset(ImgLocation); return (bounds: C, geted: false, energetic: false); }).ToArray();
+                Coins[0].energetic = energetic;
             }
             PaintBackground();
         }
@@ -202,16 +200,17 @@ namespace Pacman
                                     voidPassage = Direction.Right;
                             break;
                     }
-                    Sectors[x, y] = new(this, new(x, y), level.Structure[x, y].RightWall, level.Structure[x, y].DownWall, level.Structure[x, y].NoCoin, voidPassage);
+                    bool energetic = level.Energetics.Contains(new(x, y));
+                    Sectors[x, y] = new(this, new(x, y), level.Structure[x, y].RightWall, level.Structure[x, y].DownWall, level.Structure[x, y].NoCoin, energetic, voidPassage);
                 }
             Player = new(this, player);
             Player.Render();
             UpdateEvent += Player.Update;
             Ghosts = new Ghost[4];
-            Ghosts[0] = new Blinky(this, new(-1, TblSize.Height));
-            Ghosts[1] = new Pinky(this, new(-1, -1));
-            Ghosts[2] = new Inky(this, new(TblSize.Width, TblSize.Height), (Blinky)Ghosts[0]);
-            Ghosts[3] = new Clyde(this, new(TblSize.Width, -1));
+            Ghosts[0] = new Blinky(this, new(-1, TblSize.Height), level.BlinkyEvents);
+            Ghosts[1] = new Pinky(this, new(-1, -1), level.PinkyEvents);
+            Ghosts[2] = new Inky(this, new(TblSize.Width, TblSize.Height), (Blinky)Ghosts[0], level.InkyEvents);
+            Ghosts[3] = new Clyde(this, new(TblSize.Width, -1), level.ClydeEvents);
             for (int i = 0; i < Ghosts.Length; i++)
             {
                 Ghosts[i].Render();
@@ -299,7 +298,7 @@ namespace Pacman
         }
         public void CheckFinish()
         {
-            if (Sectors.OfType<Sector>().SelectMany(S => S.Coins).All(C => C.geted))
+            if (Sectors.OfType<Sector>().SelectMany(S => S.Coins).All(C => C.geted || C.energetic))
             {
                 SyncContext.Post(GameOver, null);
             }
@@ -378,16 +377,31 @@ namespace Pacman
         public Size Size => new(Structure.GetLength(0), Structure.GetLength(1));
         public Point Start { get; }
         public (int Index, Direction Direction) Portal { get; }
+        public Point[] Energetics { get; }
         public (Point Location, Direction Exit) GhostHome { get; }
+        public (int timer, Ghost.Behaviour newBehaviour)[] BlinkyEvents { get; }
+        public (int timer, Ghost.Behaviour newBehaviour)[] PinkyEvents { get; }
+        public (int timer, Ghost.Behaviour newBehaviour)[] InkyEvents { get; }
+        public (int timer, Ghost.Behaviour newBehaviour)[] ClydeEvents { get; }
 
         public Level((bool RightWall, bool DownWall, bool NoCoin)[,] structure, Point StartSector,
-                     (int Index, Direction Direction) portal, (Point Location, Direction Exit) ghostHome)
+                     (int Index, Direction Direction) portal, Point[] energetics,
+                     (Point Location, Direction Exit) ghostHome,
+                     (int timer, Ghost.Behaviour newBehaviour)[] blinkyEvents,
+                     (int timer, Ghost.Behaviour newBehaviour)[] pinkyEvents,
+                     (int timer, Ghost.Behaviour newBehaviour)[] inkyEvents,
+                     (int timer, Ghost.Behaviour newBehaviour)[] clydeEvents)
         {
             GUID = Guid.NewGuid();
             Structure = structure;
             Start = StartSector;
             Portal = portal;
+            Energetics = energetics;
             GhostHome = ghostHome;
+            BlinkyEvents = blinkyEvents;
+            PinkyEvents = pinkyEvents;
+            InkyEvents = inkyEvents;
+            ClydeEvents = clydeEvents;
         }
 
         public void Save(string path)
@@ -403,23 +417,57 @@ namespace Pacman
             return (Level)F.Deserialize(fs);
         }
 
+        private enum ObjectNames
+        {
+            GUID,
+            Width,
+            Height,
+            Start,
+            Portal,
+            GhostHome,
+            EnergeticsCount,
+            Energetics,
+            BlinkyCount,
+            PinkyCount,
+            InkyCount,
+            ClydeCount,
+            Blinky,
+            Pinky,
+            Inky,
+            Clyde
+        }
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            info.AddValue("GUID", GUID.ToString());
-            info.AddValue("Width", Size.Width);
-            info.AddValue("Height", Size.Height);
+            info.AddValue($"{ObjectNames.GUID}", GUID.ToString());
+            info.AddValue($"{ObjectNames.Width}", Size.Width);
+            info.AddValue($"{ObjectNames.Height}", Size.Height);
             for (int x = 0; x < Size.Width; x++)
                 for (int y = 0; y < Size.Height; y++)
                     info.AddValue($"{x},{y}", (Structure[x, y].RightWall ? 100 : 0) + (Structure[x, y].DownWall ? 10 : 0) + (Structure[x, y].NoCoin ? 1 : 0));
-            info.AddValue("Start", $"{Start.X},{Start.Y}");
-            info.AddValue("Portal", Portal.Index * 10 + (int)Portal.Direction);
-            info.AddValue("GhostHome", $"{GhostHome.Location.X},{GhostHome.Location.Y},{(int)GhostHome.Exit}");
+            info.AddValue($"{ObjectNames.Start}", $"{Start.X},{Start.Y}");
+            info.AddValue($"{ObjectNames.Portal}", Portal.Index * 10 + (int)Portal.Direction);
+            info.AddValue($"{ObjectNames.EnergeticsCount}", Energetics.Length);
+            for (int i = 0; i < Energetics.Length; i++)
+                info.AddValue($"{ObjectNames.Energetics}{i}", $"{Energetics[i].X},{Energetics[i].Y}");
+            info.AddValue($"{ObjectNames.GhostHome}", $"{GhostHome.Location.X},{GhostHome.Location.Y},{(int)GhostHome.Exit}");
+            info.AddValue($"{ObjectNames.BlinkyCount}", BlinkyEvents.Length);
+            for (int i = 0; i < BlinkyEvents.Length; i++)
+                info.AddValue($"{ObjectNames.Blinky}{i}", BlinkyEvents[i].timer * 10 + (int)BlinkyEvents[i].newBehaviour);
+            info.AddValue($"{ObjectNames.PinkyCount}", PinkyEvents.Length);
+            for (int i = 0; i < PinkyEvents.Length; i++)
+                info.AddValue($"{ObjectNames.Pinky}{i}", PinkyEvents[i].timer * 10 + (int)PinkyEvents[i].newBehaviour);
+            info.AddValue($"{ObjectNames.InkyCount}", InkyEvents.Length);
+            for (int i = 0; i < InkyEvents.Length; i++)
+                info.AddValue($"{ObjectNames.Inky}{i}", InkyEvents[i].timer * 10 + (int)InkyEvents[i].newBehaviour);
+            info.AddValue($"{ObjectNames.ClydeCount}", ClydeEvents.Length);
+            for (int i = 0; i < ClydeEvents.Length; i++)
+                info.AddValue($"{ObjectNames.Clyde}{i}", ClydeEvents[i].timer * 10 + (int)ClydeEvents[i].newBehaviour);
         }
         private Level(SerializationInfo info, StreamingContext context)
         {
-            GUID = Guid.Parse(info.GetString("GUID"));
-            int width = info.GetInt32("Width");
-            int height = info.GetInt32("Height");
+            GUID = Guid.Parse(info.GetString($"{ObjectNames.GUID}"));
+            int width = info.GetInt32($"{ObjectNames.Width}");
+            int height = info.GetInt32($"{ObjectNames.Height}");
             int[,] structure = new int[width, height];
             for (int x = 0; x < width; x++)
                 for (int y = 0; y < height; y++)
@@ -428,12 +476,32 @@ namespace Pacman
             for (int x = 0; x < width; x++)
                 for (int y = 0; y < height; y++)
                     Structure[x, y] = (RightWall: structure[x, y] / 100 != 0, DownWall: structure[x, y] / 10 % 10 != 0, NoCoin: structure[x, y] % 10 != 0);
-            int[] start = info.GetString("Start").Split(',').Select(int.Parse).ToArray();
+            int[] start = info.GetString($"{ObjectNames.Start}").Split(',').Select(int.Parse).ToArray();
             Start = new Point(start[0], start[1]);
-            int portal = info.GetInt32("Portal");
+            int portal = info.GetInt32($"{ObjectNames.Portal}");
             Portal = (portal / 10, (Direction)(portal % 10));
-            int[] ghostHome = info.GetString("GhostHome").Split(',').Select(int.Parse).ToArray();
+            int[][] energetics = new int[info.GetInt32($"{ObjectNames.EnergeticsCount}")][];
+            for (int i = 0; i < energetics.Length; i++)
+                energetics[i] = info.GetString($"{ObjectNames.Energetics}{i}").Split(',').Select(int.Parse).ToArray();
+            Energetics = energetics.Select(E => new Point(E[0], E[1])).ToArray();
+            int[] ghostHome = info.GetString($"{ObjectNames.GhostHome}").Split(',').Select(int.Parse).ToArray();
             GhostHome = (new(ghostHome[0], ghostHome[1]), (Direction)ghostHome[2]);
+            int[] blinkyEvents = new int[info.GetInt32($"{ObjectNames.BlinkyCount}")];
+            for (int i = 0; i < blinkyEvents.Length; i++)
+                blinkyEvents[i] = info.GetInt32($"{ObjectNames.Blinky}{i}");
+            BlinkyEvents = blinkyEvents.Select(E => (E / 10, (Ghost.Behaviour)(E % 10))).ToArray();
+            int[] pinkyEvents = new int[info.GetInt32($"{ObjectNames.PinkyCount}")];
+            for (int i = 0; i < pinkyEvents.Length; i++)
+                pinkyEvents[i] = info.GetInt32($"{ObjectNames.Pinky}{i}");
+            PinkyEvents = pinkyEvents.Select(E => (E / 10, (Ghost.Behaviour)(E % 10))).ToArray();
+            int[] inkyEvents = new int[info.GetInt32($"{ObjectNames.InkyCount}")];
+            for (int i = 0; i < inkyEvents.Length; i++)
+                inkyEvents[i] = info.GetInt32($"{ObjectNames.Inky}{i}");
+            InkyEvents = inkyEvents.Select(E => (E / 10, (Ghost.Behaviour)(E % 10))).ToArray();
+            int[] clydeEvents = new int[info.GetInt32($"{ObjectNames.ClydeCount}")];
+            for (int i = 0; i < clydeEvents.Length; i++)
+                clydeEvents[i] = info.GetInt32($"{ObjectNames.Clyde}{i}");
+            ClydeEvents = clydeEvents.Select(E => (E / 10, (Ghost.Behaviour)(E % 10))).ToArray();
         }
     }
 

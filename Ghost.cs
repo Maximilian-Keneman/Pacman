@@ -2,14 +2,12 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using static System.Windows.Forms.LinkLabel;
 
 namespace Pacman
 {
-    public abstract class Ghost : Movable
+    public abstract class Ghost : Movable, IDamagable
     {
         public enum Behaviour
         {
@@ -36,9 +34,34 @@ namespace Pacman
         private Behaviour StartBehaviour;
         public bool IgnorDirection = false;
 
+        public int MaxHealth => 0;
+        public int Health => 0;
+        private bool _isUnderAttack = false;
+        public bool IsUnderAttack
+        {
+            get => _isUnderAttack;
+            set
+            {
+                _isUnderAttack = value;
+                Render();
+            }
+        }
+        private bool _isDead = false;
+        public bool IsDead
+        {
+            get => _isDead;
+            private set
+            {
+                _isDead = value;
+                Render();
+                Speed.MaxValue = value ? Owner.PParametrs.EyesSpeed : Owner.PParametrs.GhostSpeed;
+            }
+        }
+
         private Color Color;
 
-        public Ghost(GameTable owner, Point escapeGoal, Color color, Behaviour startBehaviour) : base(owner)
+        public Ghost(GameTable owner, Point escapeGoal, Color color,
+            Behaviour startBehaviour, (int timer, Behaviour newBehaviour)[] events) : base(owner)
         {
             Speed.MaxValue = Owner.PParametrs.GhostSpeed;
             EscapeGoal = escapeGoal;
@@ -47,10 +70,13 @@ namespace Pacman
             StartBehaviour = startBehaviour;
             Owner.UpdateEvent += (sender, e) =>
             {
+                Elapsed();
                 CheckPosition();
                 GoalSector = SetGoal((Owner.GetPositionSector(Owner.Player.Center).position, Owner.Player.Speed.Direction));
             };
             SectorChanged += (sender, e) => SetDirection();
+            Events = events;
+            Counter = Events[0].timer;
         }
 
         public override void Draw(Graphics g)
@@ -69,20 +95,60 @@ namespace Pacman
         }
         public override void Render()
         {
-            Texture = Images.Ghost(Owner.SectorScaleValue * 3 / 4, Color);
+            Texture = IsDead ? Images.Eyes(Owner.SectorScaleValue * 3 / 8) :
+                               Images.Ghost(Owner.SectorScaleValue * 3 / 4, IsUnderAttack ? Color.DarkBlue : Color);
         }
 
         public void Restart()
         {
+            IsDead = false;
+            IsUnderAttack = false;
             Speed.MaxValue = Owner.PParametrs.GhostSpeed;
             CurrentBehaviour = StartBehaviour;
+            Counter = Events[0].timer;
+            EventIndex = 0;
+        }
+
+        private (int timer, Behaviour newBehaviour)[] Events;
+        private int EventIndex = 0;
+        private int Counter = 1;
+
+        private void Elapsed()
+        {
+            if ((CurrentBehaviour == Behaviour.Wander ||
+                 CurrentBehaviour == Behaviour.Chase ||
+                 CurrentBehaviour == Behaviour.Scatter) &&
+                 EventIndex < Events.Length)
+            {
+                if (Counter >= 0)
+                    Counter--;
+                if (Counter == 0)
+                {
+                    Counter = Events[EventIndex].timer;
+                    CurrentBehaviour = Events[EventIndex].newBehaviour;
+                    EventIndex++;
+                }
+            }
         }
 
         private void CheckPosition()
         {
             var position = Owner.GetPositionSector(Center).position;
-            if (CurrentBehaviour == Behaviour.GetOut && position == Owner.GhostHome.Location + Owner.GhostHome.Exit.ToSizeOrEmpty())
-                CurrentBehaviour = Behaviour.Chase;
+            if (!IsDead)
+            {
+                if (position == Owner.GetPositionSector(Owner.Player.Center).position)
+                    if (IsUnderAttack)
+                        ApllyDamage(1);
+                    else
+                        Owner.Player.ApllyDamage(1);
+                if (CurrentBehaviour == Behaviour.GetOut && position == Owner.GhostHome.Location + Owner.GhostHome.Exit.ToSizeOrEmpty())
+                    CurrentBehaviour = Behaviour.Chase;
+            }
+            else
+            {
+                if (CurrentBehaviour == Behaviour.Frightened && position == Owner.GhostHome.Location)
+                    Alive();
+            }
         }
         public bool GoHome(Direction direction)
         {
@@ -131,6 +197,8 @@ namespace Pacman
                     break;
                 case Behaviour.Frightened:
                     goal = (Size)Owner[Owner.GhostHome.Location].TblPosition;
+                    if (position == Owner.GhostHome.Location + Owner.GhostHome.Exit.ToSize())
+                        directions = directions.Append(new KeyValuePair<Direction, bool>(Owner.GhostHome.Exit.Inverse(), true));
                     break;
             }
             if (directions.Any())
@@ -139,6 +207,19 @@ namespace Pacman
                 double min = lengths.Min(L => L.length);
                 ChangeDirection(lengths.Find(V => V.length == min).direction);
             }
+        }
+
+        public void ApllyDamage(int damage) => Dead();
+        public void Dead()
+        {
+            IsDead = true;
+            CurrentBehaviour = Behaviour.Frightened;
+        }
+        public void Alive()
+        {
+            IsDead = false;
+            IsUnderAttack = false;
+            CurrentBehaviour = Behaviour.GetOut;
         }
     }
 }

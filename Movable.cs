@@ -53,8 +53,8 @@ namespace Pacman
             if (direction == Direction.None || direction == Speed.Direction)
                 return;
             var sector = Owner.GetPositionSector(Center).sector;
-            if ((sector.CanGo[direction] || (this is Ghost ghost && ghost.GoHome(direction))) &&
-                PointF.Subtract(sector.Bounds.Center(), (Size)Center).ToSize().Length() < Owner.SectorScaleValue / 8)
+            if ((sector.CanGo[direction] || (this is Ghost ghostHome && ghostHome.GoHome(direction))) &&
+                PointF.Subtract(sector.Bounds.Center(), (Size)Center).ToSize().Length() < Owner.SectorScaleValue / ((this is Ghost ghostDead && ghostDead.IsDead) ? 3 : 8))
             {
                 Speed.Direction = direction;
                 Render();

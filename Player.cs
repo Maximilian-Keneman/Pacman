@@ -9,12 +9,29 @@ namespace Pacman
         public int Health { get; private set; }
         public int Score;
 
+        private bool _energetic = false;
+        public bool Energetic
+        {
+            get => _energetic;
+            set
+            {
+                _energetic = value;
+                Owner.Ghosts.Act(G => G.IsUnderAttack = value);
+                if (value)
+                    Counter = 50;
+            }
+        }
+
         public Player(GameTable owner, PlayerArgs args) : base(owner)
         {
-            MaxHealth = args.MaxHealth;
+            Health = MaxHealth = args.MaxHealth;
             Speed.MaxValue = Owner.PParametrs.PacmanSpeed;
             Bounds = new RectangleF(new PointF(0, 0), new SizeF(Owner.SectorScaleValue * 3 / 4, Owner.SectorScaleValue * 3 / 4));
-            Owner.UpdateEvent += (sender, e) => CheckCoins();
+            Owner.UpdateEvent += (sender, e) =>
+            {
+                Elapsed();
+                CheckCoins();
+            };
         }
         public override void Render()
         {
@@ -22,6 +39,18 @@ namespace Pacman
             //Size ImgSize = new Size(ImgSectorSize / 40 * 11, ImgSectorSize / 4 * 3);
             Texture = Images.Pacman(Owner.SectorScaleValue * 3 / 4, Speed.Direction);
             //Images.GetFragment(Properties.Resources.StandartPlayer, ImgSize, new Rectangle(new Point(0, 0), ImgSize), Bounds.Size);
+        }
+
+        private int Counter = 0;
+        private void Elapsed()
+        {
+            if (Energetic)
+            {
+                if (Counter > 0)
+                    Counter--;
+                if (Counter == 0)
+                    Energetic = false;
+            }
         }
 
         private void CheckCoins()
@@ -38,9 +67,14 @@ namespace Pacman
                 {
                     if (!sector.Coins[i].geted && Intersect(sector.Coins[i].bounds))
                     {
-                        sector.Coins[i].geted = true;
-                        Score++;
-                        Owner.CheckFinish();
+                            sector.Coins[i].geted = true;
+                        if (sector.Coins[i].energetic)
+                            Energetic = true;
+                        else
+                        {
+                            Score++;
+                            Owner.CheckFinish();
+                        }
                     }
                 }
             }
