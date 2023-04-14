@@ -93,7 +93,7 @@ namespace Pacman
             Owner.GameEnd();
         }
 
-        public override string Debug(GameTable game) => $"Score {Score}\n{base.Debug(game)}\nLive {Health}";
+        public override string Debug() => $"Score {Score}\n{base.Debug()}\nLive {Health}";
 
         public struct PlayerArgs
         {

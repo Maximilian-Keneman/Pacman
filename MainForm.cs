@@ -12,12 +12,14 @@ namespace Pacman
 {
     public partial class MainForm : Form
     {
+        ScreenBox Screen;
         GameTable Game;
         List<Level> Levels;
 
         public MainForm()
         {
             InitializeComponent();
+            Screen = new ScreenBox(GameBox);
             var blinkyEvents = new (int timer, Ghost.Behaviour newBehaviour)[]
             {
                 (50, Ghost.Behaviour.Scatter),
@@ -94,7 +96,7 @@ namespace Pacman
         private void NewGameTool_Click(object sender, EventArgs e)
         {
             Game?.GameEnd();
-            Game = new GameTable(Levels[1], new Player.PlayerArgs(3), GameBox.Size, new ScreenBox(GameBox));
+            Game = new GameTable(Levels[1], new Player.PlayerArgs(3), GameBox.Size, Screen);
             Game.OnGameOver += (sender, e) =>
             {
                 MessageBox.Show(e.Score.ToString());
@@ -108,11 +110,11 @@ namespace Pacman
         private void DebugTimer_Tick(object sender, EventArgs e)
         {
             DebugBox.Text = $"Game\n{Game?.Debug() ?? ""}\n" +
-                $"\nPlayer\n{Game?.Player.Debug(Game) ?? ""}\n" +
-                $"\nBlinky\n{Game?.Ghosts[0].Debug(Game)}\n" +
-                $"\nPinky\n{Game?.Ghosts[1].Debug(Game)}\n" +
-                $"\nInky\n{Game?.Ghosts[2].Debug(Game)}\n" +
-                $"\nClyde\n{Game?.Ghosts[3].Debug(Game)}";
+                $"\nPlayer\n{Game?.Player.Debug() ?? ""}\n" +
+                $"\nBlinky\n{Game?.Ghosts[0].Debug()}\n" +
+                $"\nPinky\n{Game?.Ghosts[1].Debug()}\n" +
+                $"\nInky\n{Game?.Ghosts[2].Debug()}\n" +
+                $"\nClyde\n{Game?.Ghosts[3].Debug()}";
         }
 
         private void MainForm_KeyDown(object sender, KeyEventArgs e)
@@ -152,12 +154,32 @@ namespace Pacman
                     break;
             }
         }
+
+        private void DebugModeTool_Click(object sender, EventArgs e)
+        {
+            Screen.DebugMode.WallDistance = WallDistanceTool.Checked;
+            Screen.DebugMode.GhostGoal = GhostsGoalTool.Checked;
+            if (DebugBoxTool.Checked)
+            {
+                DebugBox.Visible = true;
+                DebugTimer.Start();
+            }
+            else
+            {
+                DebugBox.Visible = false;
+                DebugTimer.Stop();
+            }
+        }
     }
     public class ScreenBox : IScreen
     {
         private readonly PictureBox Box;
 
-        public ScreenBox(PictureBox box) => Box = box;
+        public ScreenBox(PictureBox box)
+        {
+            Box = box;
+            DebugMode = new();
+        }
 
         public Image Image => Box.Image;
 
@@ -166,5 +188,12 @@ namespace Pacman
             Box.Image?.Dispose();
             Box.Image = img.Clone() as Image;
         }
+
+        public PacmanDebugMode DebugMode { get; }
+        DebugMode IScreen.DebugMode => DebugMode;
+    }
+    public class PacmanDebugMode : DebugMode
+    {
+        public bool GhostGoal;
     }
 }

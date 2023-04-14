@@ -79,19 +79,21 @@ namespace Pacman
             Counter = Events[0].timer;
         }
 
-        public override void Draw(Graphics g)
+        public override void Draw(Graphics g, DebugMode debugMode)
         {
-            base.Draw(g);
-            //Pen pen = Pens.Brown;
-            //if (this is Blinky)
-            //    pen = Pens.Red;
-            //else if (this is Pinky)
-            //    pen = Pens.Pink;
-            //else if (this is Inky)
-            //    pen = Pens.Blue;
-            //else if (this is Clyde)
-            //    pen = Pens.Orange;
-            //g.DrawEllipse(pen, Owner[GoalSector]?.Bounds??RectangleF.Empty);
+            base.Draw(g, debugMode);
+            if ((debugMode as PacmanDebugMode).GhostGoal)
+            {
+                Pen pen = this switch
+                {
+                    Blinky => Pens.Red,
+                    Pinky => Pens.Pink,
+                    Inky => Pens.Blue,
+                    Clyde => Pens.Orange,
+                    _ => Pens.Brown,
+                };
+                g.DrawEllipse(pen, Owner[GoalSector]?.Bounds??RectangleF.Empty);
+            }
         }
         public override void Render()
         {

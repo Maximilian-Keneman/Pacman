@@ -158,18 +158,21 @@ namespace Pacman
         public event EventHandler SectorChanged;
 
         public abstract void Render();
-        public virtual void Draw(Graphics g)
+        public virtual void Draw(Graphics g, DebugMode debugMode)
         {
             g.DrawImage(Texture, ImgLocation);
-            //g.DrawLine(Pens.Red, new PointF(Center.X, Bounds.Top), new PointF(Center.X, Bounds.Top - Distance.up));
-            //g.DrawLine(Pens.Red, new PointF(Bounds.Left, Center.Y), new PointF(Bounds.Left + Distance.left, Center.Y));
-            //g.DrawLine(Pens.Red, new PointF(Center.X, Bounds.Bottom), new PointF(Center.X, Bounds.Bottom + Distance.down));
-            //g.DrawLine(Pens.Red, new PointF(Bounds.Right, Center.Y), new PointF(Bounds.Right + Distance.right, Center.Y));
+            if (debugMode.WallDistance)
+            {
+                g.DrawLine(Pens.Red, new PointF(Center.X, Bounds.Top), new PointF(Center.X, Bounds.Top - Distance.up));
+                g.DrawLine(Pens.Red, new PointF(Bounds.Left, Center.Y), new PointF(Bounds.Left + Distance.left, Center.Y));
+                g.DrawLine(Pens.Red, new PointF(Center.X, Bounds.Bottom), new PointF(Center.X, Bounds.Bottom + Distance.down));
+                g.DrawLine(Pens.Red, new PointF(Bounds.Right, Center.Y), new PointF(Bounds.Right + Distance.right, Center.Y));
+            }
         }
 
-        public virtual string Debug(GameTable game)
+        public virtual string Debug()
         {
-            Point position = game.GetPositionSector(Center).position;
+            Point position = Owner.GetPositionSector(Center).position;
             var (up, right, down, left) = Distance;
             return $"Sector {position}\nSpeed {Speed.Value}\nDirection {Speed.Direction}\nUp {up}\nDown {down}\nLeft {left}\nRight {right}";
         }

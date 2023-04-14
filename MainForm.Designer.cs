@@ -33,6 +33,12 @@
             this.DebugBox = new System.Windows.Forms.RichTextBox();
             this.MainMenu = new System.Windows.Forms.MenuStrip();
             this.NewGameTool = new System.Windows.Forms.ToolStripMenuItem();
+            this.DebugModeTool = new System.Windows.Forms.ToolStripMenuItem();
+            this.WallDistanceTool = new System.Windows.Forms.ToolStripMenuItem();
+            this.GhostsGoalTool = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.DebugBoxTool = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.DebugTimer = new System.Windows.Forms.Timer(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.GameBox)).BeginInit();
             this.MainMenu.SuspendLayout();
@@ -60,7 +66,8 @@
             // MainMenu
             // 
             this.MainMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.NewGameTool});
+            this.NewGameTool,
+            this.DebugModeTool});
             this.MainMenu.Location = new System.Drawing.Point(0, 0);
             this.MainMenu.Name = "MainMenu";
             this.MainMenu.Size = new System.Drawing.Size(800, 24);
@@ -73,6 +80,52 @@
             this.NewGameTool.Size = new System.Drawing.Size(77, 20);
             this.NewGameTool.Text = "New Game";
             this.NewGameTool.Click += new System.EventHandler(this.NewGameTool_Click);
+            // 
+            // DebugModeTool
+            // 
+            this.DebugModeTool.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.WallDistanceTool,
+            this.GhostsGoalTool,
+            this.toolStripSeparator1,
+            this.DebugBoxTool,
+            this.toolStripSeparator2});
+            this.DebugModeTool.Name = "DebugModeTool";
+            this.DebugModeTool.Size = new System.Drawing.Size(88, 20);
+            this.DebugModeTool.Text = "Debug Mode";
+            // 
+            // WallDistanceTool
+            // 
+            this.WallDistanceTool.CheckOnClick = true;
+            this.WallDistanceTool.Name = "WallDistanceTool";
+            this.WallDistanceTool.Size = new System.Drawing.Size(180, 22);
+            this.WallDistanceTool.Text = "Wall distance";
+            this.WallDistanceTool.Click += new System.EventHandler(this.DebugModeTool_Click);
+            // 
+            // GhostsGoalTool
+            // 
+            this.GhostsGoalTool.CheckOnClick = true;
+            this.GhostsGoalTool.Name = "GhostsGoalTool";
+            this.GhostsGoalTool.Size = new System.Drawing.Size(180, 22);
+            this.GhostsGoalTool.Text = "Ghost\'s goal";
+            this.GhostsGoalTool.Click += new System.EventHandler(this.DebugModeTool_Click);
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
+            // 
+            // DebugBoxTool
+            // 
+            this.DebugBoxTool.CheckOnClick = true;
+            this.DebugBoxTool.Name = "DebugBoxTool";
+            this.DebugBoxTool.Size = new System.Drawing.Size(180, 22);
+            this.DebugBoxTool.Text = "Box";
+            this.DebugBoxTool.Click += new System.EventHandler(this.DebugModeTool_Click);
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(177, 6);
             // 
             // DebugTimer
             // 
@@ -105,6 +158,12 @@
         private System.Windows.Forms.MenuStrip MainMenu;
         private System.Windows.Forms.ToolStripMenuItem NewGameTool;
         private System.Windows.Forms.Timer DebugTimer;
+        private System.Windows.Forms.ToolStripMenuItem DebugModeTool;
+        private System.Windows.Forms.ToolStripMenuItem WallDistanceTool;
+        private System.Windows.Forms.ToolStripMenuItem GhostsGoalTool;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem DebugBoxTool;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
     }
 }
 

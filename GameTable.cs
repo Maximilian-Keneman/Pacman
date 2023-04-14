@@ -8,8 +8,6 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static System.Windows.Forms.LinkLabel;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
 
 namespace Pacman
 {
@@ -232,13 +230,14 @@ namespace Pacman
             if (!PaintFrameStart)
             {
                 PaintFrameStart = true;
-                Image img = PaintProcess();
-                (state as IScreen).UpdateImage(img);
+                IScreen screen = state as IScreen;
+                Image img = PaintProcess(screen.DebugMode);
+                screen.UpdateImage(img);
                 img.Dispose();
                 PaintFrameStart = false;
             }
         }
-        protected virtual Image PaintProcess()
+        protected virtual Image PaintProcess(DebugMode debugMode)
         {
             Image img = new Bitmap(ImgSize.Width, ImgSize.Height);
             using (Graphics g = Graphics.FromImage(img))
@@ -247,9 +246,9 @@ namespace Pacman
                 for (int x = 0; x < TblSize.Width; x++)
                     for (int y = 0; y < TblSize.Height; y++)
                         Sectors[x, y].Draw(g);
-                Player?.Draw(g);
+                Player?.Draw(g, debugMode);
                 for (int i = 0; i < Ghosts.Length; i++)
-                    Ghosts[i].Draw(g);
+                    Ghosts[i].Draw(g, debugMode);
             }
             return img;
         }
@@ -509,5 +508,17 @@ namespace Pacman
     {
         public Image Image {get;}
         public void UpdateImage(Image img);
+        public DebugMode DebugMode { get; }
+    }
+    public class DebugMode
+    {
+        private string[] Modes =>
+            GetType().GetFields().Where(P => P.FieldType == typeof(bool)).Select(P => P.Name).ToArray();
+        public void SetAll(bool value)
+        {
+            foreach (var name in Modes)
+                GetType().InvokeMember(name, System.Reflection.BindingFlags.SetField, null, this, new object[] { value });
+        }
+        public bool WallDistance;
     }
 }
