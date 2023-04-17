@@ -36,16 +36,7 @@ namespace Pacman
 
         public int MaxHealth => 0;
         public int Health => 0;
-        private bool _isUnderAttack = false;
-        public bool IsUnderAttack
-        {
-            get => _isUnderAttack;
-            set
-            {
-                _isUnderAttack = value;
-                Render();
-            }
-        }
+        public bool IsUnderAttack { get; set; } = false;
         private bool _isDead = false;
         public bool IsDead
         {
@@ -53,21 +44,80 @@ namespace Pacman
             private set
             {
                 _isDead = value;
-                Render();
                 Speed.MaxValue = value ? Owner.PParametrs.EyesSpeed : Owner.PParametrs.GhostSpeed;
             }
         }
 
-        private Color Color;
-
-        public Ghost(GameTable owner, Point escapeGoal, Color color,
+        public Ghost(GameTable owner, Point escapeGoal,
             Behaviour startBehaviour, (int timer, Behaviour newBehaviour)[] events) : base(owner)
         {
             Speed.MaxValue = Owner.PParametrs.GhostSpeed;
             EscapeGoal = escapeGoal;
-            Color = color;
             Bounds = new RectangleF(new PointF(0, 0), new SizeF(Owner.SectorScaleValue * 3 / 4, Owner.SectorScaleValue * 3 / 4));
             StartBehaviour = startBehaviour;
+            UnderAttackAnimations = new()
+            {
+                {
+                    Direction.None, new Image[1]
+                    {
+                        Images.GetFragment(Properties.Resources.Ghosts, new(new(183, 270), new(45, 49)), Bounds.Size.ToSize())
+                    }
+                },
+                {
+                    Direction.Up, new Image[2]
+                    {
+                        Images.GetFragment(Properties.Resources.Ghosts, new(new(183, 270), new(45, 49)), Bounds.Size.ToSize()),
+                        Images.GetFragment(Properties.Resources.Ghosts, new(new(183, 314), new(45, 49)), Bounds.Size.ToSize())
+                    }
+                },
+                {
+                    Direction.Right, new Image[2]
+                    {
+                        Images.GetFragment(Properties.Resources.Ghosts, new(new(183, 6), new(45, 49)), Bounds.Size.ToSize()),
+                        Images.GetFragment(Properties.Resources.Ghosts, new(new(183, 50), new(45, 49)), Bounds.Size.ToSize())
+                    }
+                },
+                {
+                    Direction.Down, new Image[2]
+                    {
+                        Images.GetFragment(Properties.Resources.Ghosts, new(new(183, 94), new(45, 49)), Bounds.Size.ToSize()),
+                        Images.GetFragment(Properties.Resources.Ghosts, new(new(183, 138), new(45, 49)), Bounds.Size.ToSize())
+                    }
+                },
+                {
+                    Direction.Left, new Image[2]
+                    {
+                        Images.GetFragment(Properties.Resources.Ghosts, new(new(183, 182), new(45, 49)), Bounds.Size.ToSize()),
+                        Images.GetFragment(Properties.Resources.Ghosts, new(new(183, 226), new(45, 49)), Bounds.Size.ToSize())
+                    }
+                }
+            };
+            Eyes = new()
+            {
+                {
+                    Direction.None,
+                    Images.GetFragment(Properties.Resources.Ghosts, new(new(228, 138), new(45, 49)), Bounds.Size.ToSize())
+                },
+                {
+                    Direction.Up,
+                    Images.GetFragment(Properties.Resources.Ghosts, new(new(228, 138), new(45, 49)), Bounds.Size.ToSize())
+                },
+                {
+                    Direction.Right,
+                    Images.GetFragment(Properties.Resources.Ghosts, new(new(228, 6), new(45, 49)), Bounds.Size.ToSize())
+                },
+                {
+                    Direction.Down,
+                    Images.GetFragment(Properties.Resources.Ghosts, new(new(228, 50), new(45, 49)), Bounds.Size.ToSize())
+                },
+                {
+                    Direction.Left,
+                    Images.GetFragment(Properties.Resources.Ghosts, new(new(228, 94), new(45, 49)), Bounds.Size.ToSize())
+                }
+            };
+            WalkAnimator = new(GetWalkAnimations, () => (IsUnderAttack ? UnderAttackAnimations : Animations)[Speed.Direction].Last());
+            WalkAnimator.Condition = true;
+            Owner.PaintEvent += (sender, e) => Texture = WalkAnimator.Animate();
             Owner.UpdateEvent += (sender, e) =>
             {
                 Elapsed();
@@ -77,6 +127,22 @@ namespace Pacman
             SectorChanged += (sender, e) => SetDirection();
             Events = events;
             Counter = Events[0].timer;
+        }
+
+        private Animator WalkAnimator;
+        protected Dictionary<Direction, Image[]> Animations;
+        private Dictionary<Direction, Image[]> UnderAttackAnimations;
+        private Dictionary<Direction, Image> Eyes;
+        private IEnumerator<Image> GetWalkAnimations()
+        {
+            while (true)
+            {
+                if (IsDead)
+                    yield return Eyes[Speed.Direction];
+                else
+                    for (int i = 0; i < (IsUnderAttack ? UnderAttackAnimations : Animations)[Speed.Direction].Length; i++)
+                        yield return (IsUnderAttack ? UnderAttackAnimations : Animations)[Speed.Direction][i];
+            }
         }
 
         public override void Draw(Graphics g, DebugMode debugMode)
@@ -94,11 +160,6 @@ namespace Pacman
                 };
                 g.DrawEllipse(pen, Owner[GoalSector]?.Bounds??RectangleF.Empty);
             }
-        }
-        public override void Render()
-        {
-            Texture = IsDead ? Images.Eyes(Owner.SectorScaleValue * 3 / 8) :
-                               Images.Ghost(Owner.SectorScaleValue * 3 / 4, IsUnderAttack ? Color.DarkBlue : Color);
         }
 
         public void Restart()
@@ -140,7 +201,10 @@ namespace Pacman
             {
                 if (position == Owner.GetPositionSector(Owner.Player.Center).position)
                     if (IsUnderAttack)
+                    {
+                        Owner.Player.IsEat = true;
                         ApllyDamage(1);
+                    }
                     else
                         Owner.Player.ApllyDamage(1);
                 if (CurrentBehaviour == Behaviour.GetOut && position == Owner.GhostHome.Location + Owner.GhostHome.Exit.ToSizeOrEmpty())

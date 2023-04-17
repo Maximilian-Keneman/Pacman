@@ -45,15 +45,15 @@ namespace Pacman
             return img;
         }
 
-        public static Image GetFragment(Image source, Size fragmentSize, RectangleF sourceRect)
+        public static Image GetFragment(Image source, RectangleF sourceRect)
         {
-            Image img = new Bitmap(fragmentSize.Width, fragmentSize.Height);
+            Image img = new Bitmap(sourceRect.Width.Round(), sourceRect.Height.Round());
             using (Graphics g = Graphics.FromImage(img))
                 g.DrawImage(source, 0, 0, sourceRect, GraphicsUnit.Pixel);
             return img;
         }
-        public static Image GetFragment(Image source, Size fragmentSize, RectangleF sourceRect, Size needSize)
-            => new Bitmap(GetFragment(source, fragmentSize, sourceRect), needSize);
+        public static Image GetFragment(Image source, RectangleF sourceRect, Size needSize)
+            => new Bitmap(GetFragment(source, sourceRect), needSize);
         public static Image GetRectangle(Color color, SizeF sizeF)
         {
             Size size = Size.Truncate(sizeF);
@@ -102,53 +102,6 @@ namespace Pacman
             g.DrawLine(new(color, width), p1, p4);
             g.FillRound(new SolidBrush(color), p1, width);
         }
-        public static Image Eyes(float diameter)
-        {
-            Color white = Color.White,
-                  pupil = Color.Black;
-            Image img = new Bitmap((2.25f * diameter).Floor(), diameter.Floor());
-            using (Graphics g = Graphics.FromImage(img))
-            {
-                g.FillRound(new SolidBrush(white), new(0.5f * diameter, 0.5f * diameter), diameter);
-                g.FillRound(new SolidBrush(pupil), new(0.5f * diameter, 0.5f * diameter), diameter / 2);
-                g.FillRound(new SolidBrush(white), new(1.75f * diameter, 0.5f * diameter), diameter);
-                g.FillRound(new SolidBrush(pupil), new(1.75f * diameter, 0.5f * diameter), diameter / 2);
-            }
-            return img;
-        }
-        public static Image Pacman(float diameter, Direction direction)
-        {
-            Color body = Color.Yellow,
-                  eye = Color.Black;
-            if (direction == Direction.None)
-                return GetRound(body, diameter);
-            Image img = new Bitmap(diameter.Floor(), diameter.Floor());
-            using (Graphics g = Graphics.FromImage(img))
-            {
-                var (angle, peye) = direction switch
-                {
-                    Direction.Up => (-105f, new PointF(0.25f * diameter, 0.25f * diameter)),
-                    Direction.Right => (-15f, new PointF(0.75f * diameter, 0.25f * diameter)),
-                    Direction.Down => (75f, new PointF(0.75f * diameter, 0.75f * diameter)),
-                    Direction.Left => (165f, new PointF(0.25f * diameter, 0.25f * diameter)),
-                    _ => throw direction.ThrowInvalidDirectionException(),
-                };
-                g.FillPie(new SolidBrush(body), 0, 0, diameter, diameter, angle, -330);
-                g.FillRound(new SolidBrush(eye), peye, diameter / 4);
-            }
-            return img;
-        }
-        public static Image Ghost(float diameter, Color color)
-        {
-            Image img = new Bitmap((1.5f * diameter).Floor(), diameter.Floor());
-            using (Graphics g = Graphics.FromImage(img))
-            {
-                g.FillRound(new SolidBrush(color), new(diameter / 2, diameter / 2), diameter);
-                g.FillRectangle(new SolidBrush(color), new RectangleF(new(0, 0.5f * diameter), new(diameter, diameter)));
-                g.DrawImage(Eyes(0.2f * diameter), 0.25f * diameter, 0.25f * diameter);
-            }
-            return img;
-        }
     }
 
     public static partial class Expansion
@@ -157,11 +110,9 @@ namespace Pacman
         public static double Length(this Size vector) => Math.Sqrt(Math.Pow(vector.Width, 2) + Math.Pow(vector.Height, 2));
         public static double Length(this SizeF vector) => Math.Sqrt(Math.Pow(vector.Width, 2) + Math.Pow(vector.Height, 2));
         public static Size Multiple(this Size size, int multiple) => new(size.Width * multiple, size.Height * multiple);
+        public static SizeF Multiple(this SizeF size, float multiple) => new(size.Width * multiple, size.Height * multiple);
         public static SizeF ToSize(this PointF point) => new(point.X, point.Y);
 
-        public static T[] ToArray<T>(this (T V1, T V2) tuple) => new T[] { tuple.V1, tuple.V2 };
-        public static T[] ToArray<T>(this (T V1, T V2, T V3) tuple) => new T[] { tuple.V1, tuple.V2, tuple.V3 };
-        public static T[] ToArray<T>(this (T V1, T V2, T V3, T V4) tuple) => new T[] { tuple.V1, tuple.V2, tuple.V3, tuple.V4 };
         public static (bool, bool, bool) ToBool(this (int n1, int n2, int n3) v) => (v.n1 != 0, v.n2 != 0, v.n3 != 0);
         public static int Round(this float f) => (int)Math.Round(f);
         public static int Floor(this float f) => (int)Math.Floor(f);

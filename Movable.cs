@@ -57,7 +57,6 @@ namespace Pacman
                 PointF.Subtract(sector.Bounds.Center(), (Size)Center).ToSize().Length() < Owner.SectorScaleValue / ((this is Ghost ghostDead && ghostDead.IsDead) ? 3 : 8))
             {
                 Speed.Direction = direction;
-                Render();
                 SavedDirection = Direction.None;
             }
             else
@@ -157,7 +156,6 @@ namespace Pacman
         }
         public event EventHandler SectorChanged;
 
-        public abstract void Render();
         public virtual void Draw(Graphics g, DebugMode debugMode)
         {
             g.DrawImage(Texture, ImgLocation);

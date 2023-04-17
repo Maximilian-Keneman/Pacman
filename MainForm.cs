@@ -119,7 +119,7 @@ namespace Pacman
 
         private void MainForm_KeyDown(object sender, KeyEventArgs e)
         {
-            if (Game == null)
+            if (Game == null || Game.Player.IsDead)
                 return;
             switch (e.KeyCode)
             {

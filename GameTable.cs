@@ -56,7 +56,7 @@ namespace Pacman
                                new RectangleF(ImgLocation.X + Scale * 9 / 10, ImgLocation.Y + Scale * 9 / 10, Scale / 10, Scale / 10)) }
         };
 
-        public (RectangleF bounds, bool geted, bool energetic)[] Coins;
+        public (Image texture, RectangleF imgBounds, RectangleF actBounds, bool geted, bool energetic)[] Coins;
 
         private PointF ImgLocation => new(TblPosition.Y * Scale, TblPosition.X * Scale);
         private SizeF Size => Owner.SectorScale;
@@ -69,14 +69,14 @@ namespace Pacman
             (int W, int D) = GetWallDir();
             int ImgSectorSize = 200;
             Size ImgSize = new(ImgSectorSize, ImgSectorSize);
-            Background = Images.GetFragment(Properties.Resources.StandartWalls, ImgSize, new RectangleF(new PointF(D * ImgSectorSize, (4 - W) * ImgSectorSize), ImgSize), System.Drawing.Size.Truncate(Size));
+            Background = Images.GetFragment(Properties.Resources.StandartWalls, new RectangleF(new PointF(D * ImgSectorSize, (4 - W) * ImgSectorSize), ImgSize), System.Drawing.Size.Truncate(Size));
         }
         public void Draw(Graphics g)
         {
             g.DrawImage(Background, Bounds);
-            foreach (var (coinBounds, coinGeted, _) in Coins)
+            foreach (var (texture, coinBounds, _, coinGeted, _) in Coins)
                 if (!coinGeted)
-                    g.FillRectangle(new SolidBrush(Color.Black), coinBounds);
+                    g.DrawImage(texture, coinBounds);
         }
 
         public Sector(GameTable table, Point tblPosition, bool rightWall, bool downWall, bool noCoins, bool energetic, Direction voidPassage = Direction.None)
@@ -87,19 +87,28 @@ namespace Pacman
             DownWall = downWall;
             VoidPassage = voidPassage;
             if (noCoins)
-                Coins = new (RectangleF bounds, bool geted, bool energetic)[0];
+                Coins = new (Image texture, RectangleF imgBounds, RectangleF actBounds, bool geted, bool energetic)[0];
             else
             {
-                var coinSize = new SizeF(Scale / 10, Scale / 10);
+                RectangleF GetActBounds(RectangleF bounds, float proportion) =>
+                    new(bounds.Location + bounds.Size.Multiple(0.5f) - bounds.Size.Multiple(proportion / 2), bounds.Size.Multiple(proportion));
+                var coinSize = new SizeF(Scale / 4, Scale / 4);
+                var energeticSize = new SizeF(Scale * 3 / 8, Scale * 3 / 8);
                 var coins = new List<RectangleF>
                 {
-                    energetic ? new(Scale * 2 / 5, Scale * 2 / 5, Scale / 5, Scale / 5) : new(new(9 * Scale / 20, 9 * Scale / 20), coinSize)
+                    energetic ? new(new PointF(Scale / 2, Scale / 2) - energeticSize.Multiple(0.5f), energeticSize) :
+                                new(new PointF(Scale / 2, Scale / 2) - coinSize.Multiple(0.5f), coinSize)
                 };
                 if (CanGo[Direction.Up] && NeighborSector[Direction.Up]?.Coins.Length != 0)
-                    coins.Add(new(new(Scale * 9 / 20, -Scale / 20), coinSize));
+                    coins.Add(new(new(Scale / 2 - coinSize.Width / 2, -coinSize.Height / 2), coinSize));
                 if (CanGo[Direction.Left] && NeighborSector[Direction.Left]?.Coins.Length != 0)
-                    coins.Add(new(new(-Scale / 20, Scale * 9 / 20), coinSize));
-                Coins = coins.Select(C => { C.Offset(ImgLocation); return (bounds: C, geted: false, energetic: false); }).ToArray();
+                    coins.Add(new(new(-coinSize.Width / 2, Scale / 2 - coinSize.Height / 2), coinSize));
+                Coins = coins.Select(C => { C.Offset(ImgLocation); return C; })
+                             .Select(C => (texture: Images.GetFragment(Properties.Resources.Coins, energetic ? new(new(8, 101), new(26, 25)) : new(new(11, 60), new(18, 17)), C.Size.ToSize()),
+                                           imgBounds: C,
+                                           actBounds: GetActBounds(C, 0.5f),
+                                           geted: false,
+                                           energetic: false)).ToArray();
                 Coins[0].energetic = energetic;
             }
             PaintBackground();
@@ -150,7 +159,7 @@ namespace Pacman
             private set
             {
                 started = value;
-                PaintUpdate?.Change(started ? 0 : -1, 100);
+                //PaintUpdate?.Change(started ? 0 : -1, 100);
                 PhisicUpdate?.Change(started ? 0 : -1, 100);
             }
         }
@@ -202,7 +211,6 @@ namespace Pacman
                     Sectors[x, y] = new(this, new(x, y), level.Structure[x, y].RightWall, level.Structure[x, y].DownWall, level.Structure[x, y].NoCoin, energetic, voidPassage);
                 }
             Player = new(this, player);
-            Player.Render();
             UpdateEvent += Player.Update;
             Ghosts = new Ghost[4];
             Ghosts[0] = new Blinky(this, new(-1, TblSize.Height), level.BlinkyEvents);
@@ -210,10 +218,7 @@ namespace Pacman
             Ghosts[2] = new Inky(this, new(TblSize.Width, TblSize.Height), (Blinky)Ghosts[0], level.InkyEvents);
             Ghosts[3] = new Clyde(this, new(TblSize.Width, -1), level.ClydeEvents);
             for (int i = 0; i < Ghosts.Length; i++)
-            {
-                Ghosts[i].Render();
                 UpdateEvent += Ghosts[i].Update;
-            }
             OnPaint(box);
             PaintUpdate = new(OnPaint, box, -1, 100);
             PhisicUpdate = new(Update, null, -1, 100);
@@ -224,12 +229,14 @@ namespace Pacman
         protected SynchronizationContext SyncContext;
 
         protected Timer PaintUpdate;
+        public event EventHandler PaintEvent;
         private bool PaintFrameStart = false;
         protected void OnPaint(object state)
         {
             if (!PaintFrameStart)
             {
                 PaintFrameStart = true;
+                PaintEvent?.Invoke(this, EventArgs.Empty);
                 IScreen screen = state as IScreen;
                 Image img = PaintProcess(screen.DebugMode);
                 screen.UpdateImage(img);
@@ -246,9 +253,9 @@ namespace Pacman
                 for (int x = 0; x < TblSize.Width; x++)
                     for (int y = 0; y < TblSize.Height; y++)
                         Sectors[x, y].Draw(g);
-                Player?.Draw(g, debugMode);
                 for (int i = 0; i < Ghosts.Length; i++)
                     Ghosts[i].Draw(g, debugMode);
+                Player?.Draw(g, debugMode);
             }
             return img;
         }
@@ -286,6 +293,7 @@ namespace Pacman
         {
             PlayerToStart();
             Started = true;
+            PaintUpdate?.Change(started ? 0 : -1, 100);
         }
         public void GamePause()
         {
@@ -306,6 +314,7 @@ namespace Pacman
         private void GameOver(object state)
         {
             Started = false;
+            PaintUpdate?.Change(started ? 0 : -1, 100);
             OnGameOver?.Invoke(this, new(Player.Score));
         }
         public event EventHandler<GameOverEventArgs> OnGameOver;

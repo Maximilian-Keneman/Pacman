@@ -47,6 +47,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Animator.cs" />
     <Compile Include="Expansion.cs" />
     <Compile Include="GameTable.cs" />
     <Compile Include="Ghost.cs" />
@@ -89,6 +90,18 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="StandartWalls.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Coins.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Fruits.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Ghosts.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Pacman.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
