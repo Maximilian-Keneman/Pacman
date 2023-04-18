@@ -32,7 +32,7 @@ namespace Pacman
 
         private Gift(GameTable owner, Type type)
         {
-            SizeF size = new(owner.SectorScaleValue * 2 / 3, owner.SectorScaleValue * 2 / 3);
+            SizeF size = new(owner.SectorScaleValue / 2, owner.SectorScaleValue / 2);
             Bounds = new RectangleF(owner[owner.GiftPosition].Bounds.Location + (owner.SectorScale - size).Multiple(0.5f), size);
             (Texture, Action) = type switch
             {

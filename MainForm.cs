@@ -103,8 +103,29 @@ namespace Pacman
                 GameBox.Image.Dispose();
                 Game = null;
             };
+            Game.UpdateEvent += Status_Update;
             Game.GameStart();
             DebugTimer.Start();
+        }
+
+        private void Status_Update(object sender, EventArgs e)
+        {
+            Image img = new Bitmap(StatusBox.Width, StatusBox.Height);
+            using (Graphics g = Graphics.FromImage(img))
+            {
+                g.Clear(Color.White);
+                Size size = new(StatusBox.Height - 10, StatusBox.Height - 10);
+                for (int i = 0; i < Game.Player.Health; i++)
+                    g.DrawImage(Images.GetFragment(Properties.Resources.Pacman, new Rectangle(new(4, 49), new(43, 44)), size), new Point(5 + i * size.Width, 5));
+                Font scoreFont = new("Arial", 24, FontStyle.Bold);
+                var scoreSize = g.MeasureString(Game.Player.Score.ToString(), scoreFont);
+                g.DrawString(Game.Player.Score.ToString(), scoreFont, Brushes.ForestGreen, new PointF(StatusBox.Width / 2f - scoreSize.Width / 2, 5));
+                //Font timeFont = new("Calibri", 24, FontStyle.Bold);
+                //var timeSize = g.MeasureString(.ToString(), timeFont);
+                //g.DrawString(.ToString(), timeFont, Brushes.ForestGreen, new PointF(StatusBox.Width - timeSize.Width - 5, 5));
+            }
+            StatusBox.Image?.Dispose();
+            StatusBox.Image = img;
         }
 
         private void DebugTimer_Tick(object sender, EventArgs e)

@@ -40,16 +40,18 @@
             this.DebugBoxTool = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.DebugTimer = new System.Windows.Forms.Timer(this.components);
+            this.StatusBox = new System.Windows.Forms.PictureBox();
             ((System.ComponentModel.ISupportInitialize)(this.GameBox)).BeginInit();
             this.MainMenu.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.StatusBox)).BeginInit();
             this.SuspendLayout();
             // 
             // GameBox
             // 
             this.GameBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.GameBox.Location = new System.Drawing.Point(0, 24);
+            this.GameBox.Location = new System.Drawing.Point(0, 68);
             this.GameBox.Name = "GameBox";
-            this.GameBox.Size = new System.Drawing.Size(625, 426);
+            this.GameBox.Size = new System.Drawing.Size(625, 382);
             this.GameBox.TabIndex = 0;
             this.GameBox.TabStop = false;
             // 
@@ -62,6 +64,7 @@
             this.DebugBox.Size = new System.Drawing.Size(175, 426);
             this.DebugBox.TabIndex = 1;
             this.DebugBox.Text = "";
+            this.DebugBox.Visible = false;
             // 
             // MainMenu
             // 
@@ -97,7 +100,7 @@
             // 
             this.WallDistanceTool.CheckOnClick = true;
             this.WallDistanceTool.Name = "WallDistanceTool";
-            this.WallDistanceTool.Size = new System.Drawing.Size(180, 22);
+            this.WallDistanceTool.Size = new System.Drawing.Size(144, 22);
             this.WallDistanceTool.Text = "Wall distance";
             this.WallDistanceTool.Click += new System.EventHandler(this.DebugModeTool_Click);
             // 
@@ -105,31 +108,40 @@
             // 
             this.GhostsGoalTool.CheckOnClick = true;
             this.GhostsGoalTool.Name = "GhostsGoalTool";
-            this.GhostsGoalTool.Size = new System.Drawing.Size(180, 22);
+            this.GhostsGoalTool.Size = new System.Drawing.Size(144, 22);
             this.GhostsGoalTool.Text = "Ghost\'s goal";
             this.GhostsGoalTool.Click += new System.EventHandler(this.DebugModeTool_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(141, 6);
             // 
             // DebugBoxTool
             // 
             this.DebugBoxTool.CheckOnClick = true;
             this.DebugBoxTool.Name = "DebugBoxTool";
-            this.DebugBoxTool.Size = new System.Drawing.Size(180, 22);
+            this.DebugBoxTool.Size = new System.Drawing.Size(144, 22);
             this.DebugBoxTool.Text = "Box";
             this.DebugBoxTool.Click += new System.EventHandler(this.DebugModeTool_Click);
             // 
             // toolStripSeparator2
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(177, 6);
+            this.toolStripSeparator2.Size = new System.Drawing.Size(141, 6);
             // 
             // DebugTimer
             // 
             this.DebugTimer.Tick += new System.EventHandler(this.DebugTimer_Tick);
+            // 
+            // StatusBox
+            // 
+            this.StatusBox.Dock = System.Windows.Forms.DockStyle.Top;
+            this.StatusBox.Location = new System.Drawing.Point(0, 24);
+            this.StatusBox.Name = "StatusBox";
+            this.StatusBox.Size = new System.Drawing.Size(625, 44);
+            this.StatusBox.TabIndex = 3;
+            this.StatusBox.TabStop = false;
             // 
             // MainForm
             // 
@@ -137,6 +149,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
             this.Controls.Add(this.GameBox);
+            this.Controls.Add(this.StatusBox);
             this.Controls.Add(this.DebugBox);
             this.Controls.Add(this.MainMenu);
             this.MainMenuStrip = this.MainMenu;
@@ -146,6 +159,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.GameBox)).EndInit();
             this.MainMenu.ResumeLayout(false);
             this.MainMenu.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.StatusBox)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -164,6 +178,7 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem DebugBoxTool;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.PictureBox StatusBox;
     }
 }
 
