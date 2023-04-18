@@ -69,7 +69,7 @@ namespace Pacman
             for (int x = 0; x < intLevel.GetLength(0); x++)
                 for (int y = 0; y < intLevel.GetLength(1); y++)
                     boolLevel[x, y] = intLevel[x, y].ToBool();
-            Levels.Add(new Level(boolLevel, new Point(13, 8), (8, Direction.Right), new Point[] { new(1, 0), new(1, 16), new(13, 0), new(13, 16) }, (new Point(8, 8), Direction.Up),
+            Levels.Add(new Level(boolLevel, new Point(13, 8), (8, Direction.Right), new Point[] { new(1, 0), new(1, 16), new(13, 0), new(13, 16) }, new(9, 8), (new Point(8, 8), Direction.Up),
                 blinkyEvents, pinkyEvents, inkyEvents, clydeEvents));
             intLevel = new (int RightWall, int DownWall, int NoCoin)[11, 12]
             {
@@ -89,7 +89,7 @@ namespace Pacman
             for (int x = 0; x < intLevel.GetLength(0); x++)
                 for (int y = 0; y < intLevel.GetLength(1); y++)
                     boolLevel[x, y] = intLevel[x, y].ToBool();
-            Levels.Add(new Level(boolLevel, new Point(8, 5), (5, Direction.Right), new Point[] { new(1, 0), new(1, 11), new(8, 0), new(8, 11) }, (new Point(5, 5), Direction.Up),
+            Levels.Add(new Level(boolLevel, new Point(8, 5), (5, Direction.Right), new Point[] { new(1, 0), new(1, 11), new(8, 0), new(8, 11) }, new(6, 6), (new Point(5, 5), Direction.Up),
                 blinkyEvents, pinkyEvents, inkyEvents, clydeEvents));
         }
 

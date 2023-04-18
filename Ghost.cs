@@ -275,7 +275,12 @@ namespace Pacman
             }
         }
 
-        public void ApllyDamage(int damage) => Dead();
+        public void ApllyDamage(int damage)
+        {
+            Dead();
+            Owner.Player.Score += 50;
+        }
+
         public void Dead()
         {
             IsDead = true;

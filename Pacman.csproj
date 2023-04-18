@@ -52,6 +52,7 @@
     <Compile Include="GameTable.cs" />
     <Compile Include="Ghost.cs" />
     <Compile Include="Ghosts.cs" />
+    <Compile Include="Gift.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>

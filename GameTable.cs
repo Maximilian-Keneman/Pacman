@@ -219,6 +219,8 @@ namespace Pacman
             Ghosts[3] = new Clyde(this, new(TblSize.Width, -1), level.ClydeEvents);
             for (int i = 0; i < Ghosts.Length; i++)
                 UpdateEvent += Ghosts[i].Update;
+            GiftPosition = level.GiftPosition;
+            UpdateEvent += (sender, e) => Elapsed();
             OnPaint(box);
             PaintUpdate = new(OnPaint, box, -1, 100);
             PhisicUpdate = new(Update, null, -1, 100);
@@ -253,9 +255,10 @@ namespace Pacman
                 for (int x = 0; x < TblSize.Width; x++)
                     for (int y = 0; y < TblSize.Height; y++)
                         Sectors[x, y].Draw(g);
+                Gift?.Draw(g);
                 for (int i = 0; i < Ghosts.Length; i++)
                     Ghosts[i].Draw(g, debugMode);
-                Player?.Draw(g, debugMode);
+                Player.Draw(g, debugMode);
             }
             return img;
         }
@@ -276,6 +279,27 @@ namespace Pacman
             }
         }
 
+        private int Counter = 0;
+        private void Elapsed()
+        {
+            if (Gift == null)
+            {
+                if (Counter > 0)
+                    Counter--;
+                if (Counter == 0)
+                {
+                    Gift = Gift.SpawnGift(this);
+                    Counter = 100;
+                }
+            }
+        }
+        public Point GiftPosition;
+        private Gift Gift = null;
+        public void RemoveGift()
+        {
+            Gift = null;
+        }
+
         public void PlayerToStart()
         {
             RectangleF startWall = this[StartSector.Value].Bounds;
@@ -293,6 +317,7 @@ namespace Pacman
         {
             PlayerToStart();
             Started = true;
+            Counter = 100;
             PaintUpdate?.Change(started ? 0 : -1, 100);
         }
         public void GamePause()
@@ -386,6 +411,7 @@ namespace Pacman
         public Point Start { get; }
         public (int Index, Direction Direction) Portal { get; }
         public Point[] Energetics { get; }
+        public Point GiftPosition { get; }
         public (Point Location, Direction Exit) GhostHome { get; }
         public (int timer, Ghost.Behaviour newBehaviour)[] BlinkyEvents { get; }
         public (int timer, Ghost.Behaviour newBehaviour)[] PinkyEvents { get; }
@@ -393,7 +419,7 @@ namespace Pacman
         public (int timer, Ghost.Behaviour newBehaviour)[] ClydeEvents { get; }
 
         public Level((bool RightWall, bool DownWall, bool NoCoin)[,] structure, Point StartSector,
-                     (int Index, Direction Direction) portal, Point[] energetics,
+                     (int Index, Direction Direction) portal, Point[] energetics, Point giftPosition,
                      (Point Location, Direction Exit) ghostHome,
                      (int timer, Ghost.Behaviour newBehaviour)[] blinkyEvents,
                      (int timer, Ghost.Behaviour newBehaviour)[] pinkyEvents,
@@ -405,6 +431,7 @@ namespace Pacman
             Start = StartSector;
             Portal = portal;
             Energetics = energetics;
+            GiftPosition = giftPosition;
             GhostHome = ghostHome;
             BlinkyEvents = blinkyEvents;
             PinkyEvents = pinkyEvents;
@@ -435,6 +462,7 @@ namespace Pacman
             GhostHome,
             EnergeticsCount,
             Energetics,
+            GiftPosition,
             BlinkyCount,
             PinkyCount,
             InkyCount,
@@ -457,6 +485,7 @@ namespace Pacman
             info.AddValue($"{ObjectNames.EnergeticsCount}", Energetics.Length);
             for (int i = 0; i < Energetics.Length; i++)
                 info.AddValue($"{ObjectNames.Energetics}{i}", $"{Energetics[i].X},{Energetics[i].Y}");
+            info.AddValue($"{ObjectNames.GiftPosition}", $"{GiftPosition.X},{GiftPosition.Y}");
             info.AddValue($"{ObjectNames.GhostHome}", $"{GhostHome.Location.X},{GhostHome.Location.Y},{(int)GhostHome.Exit}");
             info.AddValue($"{ObjectNames.BlinkyCount}", BlinkyEvents.Length);
             for (int i = 0; i < BlinkyEvents.Length; i++)
@@ -492,6 +521,8 @@ namespace Pacman
             for (int i = 0; i < energetics.Length; i++)
                 energetics[i] = info.GetString($"{ObjectNames.Energetics}{i}").Split(',').Select(int.Parse).ToArray();
             Energetics = energetics.Select(E => new Point(E[0], E[1])).ToArray();
+            int[] giftPosition = info.GetString($"{ObjectNames.GiftPosition}").Split(',').Select(int.Parse).ToArray();
+            GiftPosition = new(giftPosition[0], giftPosition[1]);
             int[] ghostHome = info.GetString($"{ObjectNames.GhostHome}").Split(',').Select(int.Parse).ToArray();
             GhostHome = (new(ghostHome[0], ghostHome[1]), (Direction)ghostHome[2]);
             int[] blinkyEvents = new int[info.GetInt32($"{ObjectNames.BlinkyCount}")];

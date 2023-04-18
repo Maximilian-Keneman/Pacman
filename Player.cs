@@ -182,9 +182,14 @@ namespace Pacman
         }
         public void ApllyDamage(int damage)
         {
-            Owner.GamePause();
-            Health--;
-            IsDead = true;
+            if (damage > 0)
+            {
+                Owner.GamePause();
+                Health--;
+                IsDead = true;
+            }
+            else if (damage < 0)
+                Health++;
         }
         public void Dead()
         {
