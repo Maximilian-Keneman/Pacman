@@ -73,7 +73,7 @@ namespace Pacman
         }
         public void Draw(Graphics g)
         {
-            g.DrawImage(Background, Bounds);
+            g.DrawImage(new Bitmap(Background, Bounds.Floor().Size), Bounds.Floor());
             foreach (var (texture, coinBounds, _, coinGeted, _) in Coins)
                 if (!coinGeted)
                     g.DrawImage(texture, coinBounds);
@@ -249,7 +249,7 @@ namespace Pacman
             Image img = new Bitmap(ImgSize.Width, ImgSize.Height);
             using (Graphics g = Graphics.FromImage(img))
             {
-                g.Clear(Color.White);
+                g.Clear(Color.Gray);
                 for (int x = 0; x < TblSize.Width; x++)
                     for (int y = 0; y < TblSize.Height; y++)
                         Sectors[x, y].Draw(g);

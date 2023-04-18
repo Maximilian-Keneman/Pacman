@@ -112,6 +112,8 @@ namespace Pacman
         public static Size Multiple(this Size size, int multiple) => new(size.Width * multiple, size.Height * multiple);
         public static SizeF Multiple(this SizeF size, float multiple) => new(size.Width * multiple, size.Height * multiple);
         public static SizeF ToSize(this PointF point) => new(point.X, point.Y);
+        public static Rectangle Round(this RectangleF rect) => new(rect.X.Round(), rect.Y.Round(), rect.Width.Round(), rect.Height.Round());
+        public static Rectangle Floor(this RectangleF rect) => new(rect.X.Floor(), rect.Y.Floor(), rect.Width.Floor(), rect.Height.Floor());
 
         public static (bool, bool, bool) ToBool(this (int n1, int n2, int n3) v) => (v.n1 != 0, v.n2 != 0, v.n3 != 0);
         public static int Round(this float f) => (int)Math.Round(f);
